@@ -91,12 +91,24 @@ export default function AdminDashboard() {
         }
     };
 
+    const downloadTemplate = () => {
+        const csvContent = `question,correctAnswer,wrongAnswer1,wrongAnswer2,wrongAnswer3
+What is the capital of Myanmar?,Naypyidaw,Yangon,Mandalay,Bagan
+မြန်မာနိုင်ငံ၏ မြို့တော်မှာ ဘယ်မြို့လဲ?,နေပြည်တော်,ရန်ကုန်,မန္တလေး,ပုဂံ
+Translate 'Hello',မင်္ဂလာပါ,ဟယ်လို,ဟလို,ဟယ်လော`;
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'exercise_template.csv';
+        link.click();
+    };
+
     const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !selectedTopic) return;
 
         Papa.parse(file, {
-            complete: async (results) => {
+            complete: async (results: any) => {
                 const data = results.data as string[][];
                 let count = 0;
 
@@ -123,7 +135,7 @@ export default function AdminDashboard() {
                 loadExercises(selectedTopic);
                 e.target.value = '';
             },
-            error: (error) => {
+            error: (error: any) => {
                 alert('❌ Error parsing CSV: ' + error.message);
             }
         });
@@ -204,7 +216,15 @@ export default function AdminDashboard() {
                                 {/* Create Exercise */}
                                 <div className="bg-black/20 rounded-xl p-4 mb-4">
                                     <div className="mb-3">
-                                        <label className="block text-white/70 text-sm mb-2">📤 Upload CSV</label>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="block text-white/70 text-sm">📤 Upload CSV</label>
+                                            <button
+                                                onClick={downloadTemplate}
+                                                className="px-3 py-1 bg-gradient-to-r from-yellow-600 to-orange-600 text-white text-xs rounded-lg hover:shadow-lg transition-all"
+                                            >
+                                                ⬇️ Download Template
+                                            </button>
+                                        </div>
                                         <input
                                             type="file"
                                             accept=".csv"
