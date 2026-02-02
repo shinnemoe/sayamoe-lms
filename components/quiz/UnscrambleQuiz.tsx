@@ -80,7 +80,7 @@ export default function UnscrambleQuiz({ question, words, onAnswer, showResult, 
             {showResult && (
                 <div className={`p-4 rounded-xl text-center font-bold text-lg ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                     }`}>
-                    {isCorrect ? '✅ Correct!' : '❌ Incorrect'}
+                    {isCorrect ? '✅ Correct!' : `❌ Wrong! Correct answer: "${words.join(' ')}"`}
                 </div>
             )}
         </div>

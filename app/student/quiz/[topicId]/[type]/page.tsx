@@ -169,6 +169,7 @@ export default function QuizPage() {
                         <MultipleChoiceQuiz
                             question={currentExercise.question}
                             options={currentExercise.options}
+                            correctAnswer={currentExercise.correctAnswer}
                             onAnswer={handleAnswer}
                             showResult={showResult}
                             isCorrect={isCorrect}
