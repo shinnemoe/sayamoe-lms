@@ -1,36 +1,101 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sayamoe - English Learning App
 
-## Getting Started
+A fast, sleek flashcard-style English learning app with auto-generated quiz variations.
 
-First, run the development server:
+## 🚀 Quick Start
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Set up Firebase:**
+   - Copy `.env.local.example` to `.env.local`
+   - Add your Firebase credentials
+
+3. **Run locally:**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000)
+
+## 📱 Features
+
+### Student Side
+- **Dashboard**: View assigned topics with progress tracking
+- **3 Quiz Types**:
+  - 🔤 **Unscramble**: Arrange words in correct order
+  - ✓✗ **True/False**: Quick yes/no questions
+  - 📝 **Multiple Choice**: Choose the right answer
+- **Score Tracking**: Best scores and attempt history
+
+### Admin Side
+- **Simple Dashboard** at `/admin`
+- Create topics and exercises
+- Auto-generates 3 quiz types from single exercise
+- Manage everything in one place
+
+## 🎨 Design
+- Sleek, minimal UI with gradient themes
+- Fast animations and transitions
+- Mobile-responsive
+- Game-like feedback
+
+## 🔧 Tech Stack
+- Next.js 16 (App Router)
+- TypeScript
+- Tailwind CSS
+- Firebase (Auth + Firestore)
+- Git version control
+
+## 📦 Project Structure
+```
+sayamoe/
+├── app/
+│   ├── admin/          # Admin dashboard
+│   ├── student/        # Student pages
+│   ├── teacher/        # Teacher pages (optional)
+│   └── login/          # Authentication
+├── components/
+│   └── quiz/           # Quiz components
+├── lib/
+│   ├── firebase.ts     # Firebase config
+│   └── quizGenerator.ts # Auto-quiz logic
+└── types/              # TypeScript types
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Deployment
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Vercel (Recommended)
+```bash
+npm run build
+vercel deploy
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Firebase Hosting
+```bash
+npm run build
+firebase deploy
+```
 
-## Learn More
+## 📝 Usage
 
-To learn more about Next.js, take a look at the following resources:
+1. **Admin**: Go to `/admin` to create topics and exercises
+2. **Students**: Login at `/login?role=student`
+3. **Teachers**: Login at `/login?role=teacher` (optional)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🔐 Firebase Setup
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Required collections:
+- `users` - User accounts
+- `topics` - Learning topics
+- `exercises` - Exercise questions
+- `scores` - Student scores
+- `classes` - Student classes (optional)
 
-## Deploy on Vercel
+## 💾 Git Commits
+All changes are automatically committed to Git for safety!
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Built with ❤️ for fast, effective learning
