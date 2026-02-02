@@ -38,7 +38,7 @@ export default function TopicPage() {
                 </h1>
                 <p className="text-gray-600 mb-8">Select how you want to practice</p>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {quizTypes.map((quiz) => (
                         <div
                             key={quiz.type}
