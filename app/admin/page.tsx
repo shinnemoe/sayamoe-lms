@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Topic, Exercise } from '@/types';
+import Papa from 'papaparse';
 
 export default function AdminDashboard() {
     const [topics, setTopics] = useState<Topic[]>([]);
@@ -90,6 +91,44 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !selectedTopic) return;
+
+        Papa.parse(file, {
+            complete: async (results) => {
+                const data = results.data as string[][];
+                let count = 0;
+
+                for (let i = 0; i < data.length; i++) {
+                    const row = data[i];
+                    if (row.length < 2 || !row[0] || !row[1]) continue;
+
+                    const question = row[0].trim();
+                    const correctAnswer = row[1].trim();
+                    const distractors = row.slice(2).map(d => d?.trim()).filter(Boolean);
+
+                    await addDoc(collection(db, 'exercises'), {
+                        topicId: selectedTopic,
+                        question,
+                        correctAnswer,
+                        distractors: distractors.length > 0 ? distractors : undefined,
+                        order: exercises.length + count,
+                        createdAt: new Date()
+                    });
+                    count++;
+                }
+
+                alert(`✅ Imported ${count} exercises!`);
+                loadExercises(selectedTopic);
+                e.target.value = '';
+            },
+            error: (error) => {
+                alert('❌ Error parsing CSV: ' + error.message);
+            }
+        });
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
             <div className="max-w-7xl mx-auto">
@@ -131,8 +170,8 @@ export default function AdminDashboard() {
                                 <div
                                     key={topic.id}
                                     className={`p-4 rounded-xl cursor-pointer transition-all ${selectedTopic === topic.id
-                                            ? 'bg-gradient-to-r from-purple-600 to-pink-600'
-                                            : 'bg-white/5 hover:bg-white/10'
+                                        ? 'bg-gradient-to-r from-purple-600 to-pink-600'
+                                        : 'bg-white/5 hover:bg-white/10'
                                         }`}
                                     onClick={() => setSelectedTopic(topic.id)}
                                 >
@@ -164,33 +203,46 @@ export default function AdminDashboard() {
                             <>
                                 {/* Create Exercise */}
                                 <div className="bg-black/20 rounded-xl p-4 mb-4">
-                                    <input
-                                        type="text"
-                                        placeholder="Question"
-                                        value={newQuestion}
-                                        onChange={(e) => setNewQuestion(e.target.value)}
-                                        className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 mb-2"
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Correct Answer"
-                                        value={newAnswer}
-                                        onChange={(e) => setNewAnswer(e.target.value)}
-                                        className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 mb-2"
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Wrong answers (comma separated)"
-                                        value={newDistractors}
-                                        onChange={(e) => setNewDistractors(e.target.value)}
-                                        className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 mb-2"
-                                    />
-                                    <button
-                                        onClick={createExercise}
-                                        className="w-full py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:shadow-lg transition-all font-semibold"
-                                    >
-                                        + Add Exercise
-                                    </button>
+                                    <div className="mb-3">
+                                        <label className="block text-white/70 text-sm mb-2">📤 Upload CSV</label>
+                                        <input
+                                            type="file"
+                                            accept=".csv"
+                                            onChange={handleCSVUpload}
+                                            className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gradient-to-r file:from-green-600 file:to-teal-600 file:text-white file:cursor-pointer hover:file:shadow-lg"
+                                        />
+                                        <p className="text-xs text-white/50 mt-1">Format: question,correctAnswer,wrongAnswer1,wrongAnswer2,wrongAnswer3</p>
+                                    </div>
+                                    <div className="border-t border-white/10 my-3 pt-3">
+                                        <p className="text-white/70 text-sm mb-2">Or add manually:</p>
+                                        <input
+                                            type="text"
+                                            placeholder="Question"
+                                            value={newQuestion}
+                                            onChange={(e) => setNewQuestion(e.target.value)}
+                                            className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 mb-2"
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="Correct Answer"
+                                            value={newAnswer}
+                                            onChange={(e) => setNewAnswer(e.target.value)}
+                                            className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 mb-2"
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="Wrong answers (comma separated)"
+                                            value={newDistractors}
+                                            onChange={(e) => setNewDistractors(e.target.value)}
+                                            className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 mb-2"
+                                        />
+                                        <button
+                                            onClick={createExercise}
+                                            className="w-full py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:shadow-lg transition-all font-semibold"
+                                        >
+                                            + Add Exercise
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Exercises List */}
