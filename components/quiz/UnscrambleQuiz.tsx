@@ -5,12 +5,13 @@ import { useState } from 'react';
 interface Props {
     question: string;
     words: string[];
+    correctAnswer: string;
     onAnswer: (answer: string) => void;
     showResult: boolean;
     isCorrect: boolean;
 }
 
-export default function UnscrambleQuiz({ question, words, onAnswer, showResult, isCorrect }: Props) {
+export default function UnscrambleQuiz({ question, words, correctAnswer, onAnswer, showResult, isCorrect }: Props) {
     const [selectedWords, setSelectedWords] = useState<string[]>([]);
     const [availableWords, setAvailableWords] = useState<string[]>(words);
 
@@ -80,7 +81,7 @@ export default function UnscrambleQuiz({ question, words, onAnswer, showResult, 
             {showResult && (
                 <div className={`p-4 rounded-xl text-center font-bold text-lg ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                     }`}>
-                    {isCorrect ? '✅ Correct!' : `❌ Wrong! Correct answer: "${words.join(' ')}"`}
+                    {isCorrect ? '✅ Correct!' : `❌ Wrong! Correct answer: "${correctAnswer}"`}
                 </div>
             )}
         </div>

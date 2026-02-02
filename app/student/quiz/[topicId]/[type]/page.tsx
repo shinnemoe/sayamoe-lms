@@ -150,6 +150,7 @@ export default function QuizPage() {
                         <UnscrambleQuiz
                             question={currentExercise.question}
                             words={currentExercise.options}
+                            correctAnswer={currentExercise.correctAnswer}
                             onAnswer={handleAnswer}
                             showResult={showResult}
                             isCorrect={isCorrect}
