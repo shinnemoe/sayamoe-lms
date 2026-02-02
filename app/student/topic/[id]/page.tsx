@@ -5,22 +5,16 @@ import { QuizType } from '@/types';
 
 const quizTypes: { type: QuizType; emoji: string; title: string; description: string }[] = [
     {
-        type: 'unscramble',
-        emoji: '🔤',
-        title: 'Unscramble',
-        description: 'Put the words in the right order'
-    },
-    {
-        type: 'trueFalse',
-        emoji: '✓✗',
-        title: 'True/False',
-        description: 'Is the statement correct?'
-    },
-    {
         type: 'multipleChoice',
         emoji: '📝',
         title: 'Multiple Choice',
         description: 'Choose the correct answer'
+    },
+    {
+        type: 'unscramble',
+        emoji: '🔤',
+        title: 'Unscramble',
+        description: 'Put the words in the right order'
     }
 ];
 

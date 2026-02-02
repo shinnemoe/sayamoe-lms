@@ -21,14 +21,7 @@ export function generateQuizVariations(exercise: Exercise): QuizVariation[] {
         correctAnswer: exercise.correctAnswer
     });
 
-    // 2. True/False
-    variations.push({
-        type: 'trueFalse',
-        question: `${exercise.question} - "${exercise.correctAnswer}"`,
-        correctAnswer: true
-    });
-
-    // 3. Unscramble
+    // 2. Unscramble
     variations.push({
         type: 'unscramble',
         question: exercise.question,
