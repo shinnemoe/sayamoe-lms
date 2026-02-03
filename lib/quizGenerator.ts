@@ -10,6 +10,11 @@ interface QuizVariation {
 export function generateQuizVariations(exercise: Exercise): QuizVariation[] {
     const variations: QuizVariation[] = [];
 
+    // Guard clause: ensure we have the required fields
+    if (!exercise.question || !exercise.correctAnswer) {
+        return variations;
+    }
+
     // 1. Multiple Choice
     variations.push({
         type: 'multipleChoice',
