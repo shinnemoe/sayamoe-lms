@@ -6,6 +6,7 @@ interface Props {
     question: string;
     options: string[];
     correctAnswer: string;
+    explanation?: string;
     onAnswer: (answer: string) => void;
     showResult: boolean;
     isCorrect: boolean;
@@ -13,7 +14,7 @@ interface Props {
 
 const icons = ['🎓', '✏️', '📚', '🎯'];
 
-export default function MultipleChoiceQuiz({ question, options, correctAnswer, onAnswer, showResult, isCorrect }: Props) {
+export default function MultipleChoiceQuiz({ question, options, correctAnswer, explanation, onAnswer, showResult, isCorrect }: Props) {
     const [selectedAnswer, setSelectedAnswer] = useState<string>('');
 
     const handleSelect = (option: string) => {
@@ -66,9 +67,15 @@ export default function MultipleChoiceQuiz({ question, options, correctAnswer, o
             </div>
 
             {showResult && (
-                <div className={`mt-6 p-6 rounded-2xl text-center font-bold text-2xl ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                    {isCorrect ? '✅ Correct!' : `❌ Wrong! Correct answer: ${correctAnswer}`}
+                <div className={`mt-6 p-6 rounded-2xl ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    <div className="text-center font-bold text-2xl mb-2">
+                        {isCorrect ? '✅ Correct!' : `❌ Wrong! Correct answer: ${correctAnswer}`}
+                    </div>
+                    {!isCorrect && explanation && (
+                        <div className="text-base text-red-600 mt-3 pt-3 border-t border-red-300">
+                            <span className="font-semibold">💡 Explanation:</span> {explanation}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

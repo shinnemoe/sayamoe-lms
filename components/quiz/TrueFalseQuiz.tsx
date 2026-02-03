@@ -2,12 +2,13 @@
 
 interface Props {
     question: string;
+    explanation?: string;
     onAnswer: (answer: boolean) => void;
     showResult: boolean;
     isCorrect: boolean;
 }
 
-export default function TrueFalseQuiz({ question, onAnswer, showResult, isCorrect }: Props) {
+export default function TrueFalseQuiz({ question, explanation, onAnswer, showResult, isCorrect }: Props) {
     return (
         <div>
             <h2 className="text-2xl font-bold mb-8 text-center">{question}</h2>
@@ -28,9 +29,15 @@ export default function TrueFalseQuiz({ question, onAnswer, showResult, isCorrec
                     </button>
                 </div>
             ) : (
-                <div className={`p-8 rounded-2xl text-center font-bold text-2xl ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                    {isCorrect ? '✅ Correct!' : '❌ Incorrect'}
+                <div className={`p-8 rounded-2xl ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    <div className="text-center font-bold text-2xl mb-2">
+                        {isCorrect ? '✅ Correct!' : '❌ Incorrect'}
+                    </div>
+                    {!isCorrect && explanation && (
+                        <div className="text-base text-red-600 mt-3 pt-3 border-t border-red-300">
+                            <span className="font-semibold">💡 Explanation:</span> {explanation}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

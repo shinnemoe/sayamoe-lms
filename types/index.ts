@@ -41,6 +41,7 @@ export interface Exercise {
     order: number;
     difficulty?: 'easy' | 'medium' | 'hard';
     hints?: string;
+    explanation?: string;  // Explanation shown when answer is wrong
     createdAt: Date;
 
     // Multiple Choice fields

@@ -6,12 +6,13 @@ interface Props {
     question: string;
     words: string[];
     correctAnswer: string;
+    explanation?: string;
     onAnswer: (answer: string) => void;
     showResult: boolean;
     isCorrect: boolean;
 }
 
-export default function UnscrambleQuiz({ question, words, correctAnswer, onAnswer, showResult, isCorrect }: Props) {
+export default function UnscrambleQuiz({ question, words, correctAnswer, explanation, onAnswer, showResult, isCorrect }: Props) {
     const [selectedWords, setSelectedWords] = useState<string[]>([]);
     const [availableWords, setAvailableWords] = useState<string[]>(words);
 
@@ -79,9 +80,15 @@ export default function UnscrambleQuiz({ question, words, correctAnswer, onAnswe
             )}
 
             {showResult && (
-                <div className={`p-4 rounded-xl text-center font-bold text-lg ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                    {isCorrect ? '✅ Correct!' : `❌ Wrong! Correct answer: "${correctAnswer}"`}
+                <div className={`p-4 rounded-xl ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    <div className="text-center font-bold text-lg mb-2">
+                        {isCorrect ? '✅ Correct!' : `❌ Wrong! Correct answer: "${correctAnswer}"`}
+                    </div>
+                    {!isCorrect && explanation && (
+                        <div className="text-sm text-red-600 mt-2 pt-2 border-t border-red-300">
+                            <span className="font-semibold">💡 Explanation:</span> {explanation}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

@@ -161,21 +161,21 @@ export default function AdminDashboard() {
 
         switch (quizType) {
             case 'multipleChoice':
-                csvContent = 'question,answer,distractor1,distractor2,distractor3\n' +
-                    'What is the capital of France?,Paris,London,Berlin,Madrid\n' +
-                    'What color is the sky?,Blue,Red,Green,Yellow';
+                csvContent = 'question,answer,distractor1,distractor2,distractor3,explanation\n' +
+                    'What is the capital of France?,Paris,London,Berlin,Madrid,Paris is the capital and largest city of France\n' +
+                    'What color is the sky?,Blue,Red,Green,Yellow,The sky appears blue due to Rayleigh scattering';
                 filename = 'multiple_choice_template.csv';
                 break;
             case 'unscramble':
-                csvContent = 'prompt,answer\n' +
-                    'Arrange the words:,I love learning English\n' +
-                    'Put in correct order:,The cat is sleeping';
+                csvContent = 'prompt,answer,explanation\n' +
+                    'Arrange the words:,I love learning English,Subject + Verb + Object order in English\n' +
+                    'Put in correct order:,The cat is sleeping,Article + Noun + Verb structure';
                 filename = 'unscramble_template.csv';
                 break;
             case 'trueFalse':
-                csvContent = 'statement,answer\n' +
-                    'The Earth is flat,false\n' +
-                    'Water boils at 100 degrees Celsius,true';
+                csvContent = 'statement,answer,explanation\n' +
+                    'The Earth is flat,false,The Earth is a sphere (oblate spheroid)\n' +
+                    'Water boils at 100 degrees Celsius,true,At sea level atmospheric pressure water boils at 100°C';
                 filename = 'true_false_template.csv';
                 break;
         }
@@ -261,6 +261,11 @@ export default function AdminDashboard() {
                                 exerciseData.mcOptions = shuffled.map((text: string) => ({ text }));
                                 exerciseData.mcCorrectAnswerIndex = correctIndex;
 
+                                // Optional explanation
+                                if (row.explanation) {
+                                    exerciseData.explanation = String(row.explanation).trim();
+                                }
+
                             } else if (quizType === 'unscramble') {
                                 const prompt = row.prompt || row.Prompt || 'Arrange the words in the correct order';
                                 const answer = row.answer || row.sentence;
@@ -269,6 +274,11 @@ export default function AdminDashboard() {
 
                                 exerciseData.unscramblePrompt = String(prompt).trim();
                                 exerciseData.unscrambleAnswer = String(answer).trim();
+
+                                // Optional explanation
+                                if (row.explanation) {
+                                    exerciseData.explanation = String(row.explanation).trim();
+                                }
 
                             } else if (quizType === 'trueFalse') {
                                 const statement = row.statement || row.Statement;
@@ -280,6 +290,11 @@ export default function AdminDashboard() {
                                 exerciseData.tfAnswer = String(answer).toLowerCase() === 'true' ||
                                     String(answer).toLowerCase() === 't' ||
                                     answer === '1';
+
+                                // Optional explanation
+                                if (row.explanation) {
+                                    exerciseData.explanation = String(row.explanation).trim();
+                                }
                             }
 
                             await addDoc(collection(db, 'exercises'), exerciseData);

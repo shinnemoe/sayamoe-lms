@@ -192,6 +192,7 @@ export default function QuizPage() {
                             question={currentExercise.unscramblePrompt || 'Arrange these words to make a sentence:'}
                             words={currentExercise.unscrambleAnswer.split(' ')}
                             correctAnswer={currentExercise.unscrambleAnswer}
+                            explanation={currentExercise.explanation}
                             onAnswer={handleAnswer}
                             showResult={showResult}
                             isCorrect={isCorrect}
@@ -201,6 +202,7 @@ export default function QuizPage() {
                     {quizType === 'trueFalse' && currentExercise.tfStatement && (
                         <TrueFalseQuiz
                             question={currentExercise.tfStatement}
+                            explanation={currentExercise.explanation}
                             onAnswer={handleAnswer}
                             showResult={showResult}
                             isCorrect={isCorrect}
@@ -215,6 +217,7 @@ export default function QuizPage() {
                                 ...(currentExercise.mcDistractors || [])
                             ].filter(Boolean)}
                             correctAnswer={currentExercise.mcCorrectAnswer || ''}
+                            explanation={currentExercise.explanation}
                             onAnswer={handleAnswer}
                             showResult={showResult}
                             isCorrect={isCorrect}
