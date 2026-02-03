@@ -195,7 +195,8 @@ export default function QuizPage() {
 
                         return (
                             <UnscrambleQuiz
-                                question={currentExercise.unscramblePrompt || 'Arrange these words to make a sentence:'}
+                                question={currentExercise.unscrambleQuestion || 'Unscramble the sentence:'}
+                                prompt={currentExercise.unscramblePrompt}
                                 words={shuffled}
                                 correctAnswer={currentExercise.unscrambleAnswer}
                                 explanation={currentExercise.explanation}

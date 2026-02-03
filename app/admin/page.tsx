@@ -181,9 +181,9 @@ export default function AdminDashboard() {
                 filename = 'multiple_choice_template.csv';
                 break;
             case 'unscramble':
-                csvContent = 'prompt,answer,explanation\n' +
-                    'Arrange the words:,I love learning English,Subject + Verb + Object order in English\n' +
-                    'Put in correct order:,The cat is sleeping,Article + Noun + Verb structure';
+                csvContent = 'question,prompt,answer,explanation\n' +
+                    'What does this mean in English?,Arrange the words,I love learning English,Subject + Verb + Object order in English\n' +
+                    'Translate to English,Put in correct order,The cat is sleeping,Article + Noun + Verb structure';
                 filename = 'unscramble_template.csv';
                 break;
             case 'trueFalse':
@@ -285,11 +285,16 @@ export default function AdminDashboard() {
                                 }
 
                             } else if (quizType === 'unscramble') {
+                                const question = row.question || row.Question;
                                 const prompt = row.prompt || row.Prompt || 'Arrange the words in the correct order';
                                 const answer = row.answer || row.sentence;
 
                                 if (!answer) continue;
 
+                                // Optional question for context
+                                if (question) {
+                                    exerciseData.unscrambleQuestion = String(question).trim();
+                                }
                                 exerciseData.unscramblePrompt = String(prompt).trim();
                                 exerciseData.unscrambleAnswer = String(answer).trim();
 

@@ -51,7 +51,8 @@ export interface Exercise {
     mcCorrectAnswerIndex?: number;
 
     // Unscramble fields
-    unscramblePrompt?: string;
+    unscrambleQuestion?: string;  // Main context/question
+    unscramblePrompt?: string;    // Instructions like "Arrange the words"
     unscrambleAnswer?: string;
 
     // True/False fields

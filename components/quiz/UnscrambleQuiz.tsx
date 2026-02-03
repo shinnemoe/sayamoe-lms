@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 
 interface Props {
     question: string;
+    prompt?: string;  // Optional instruction like "Arrange the words"
     words: string[];
     correctAnswer: string;
     explanation?: string;
@@ -12,7 +13,7 @@ interface Props {
     isCorrect: boolean;
 }
 
-export default function UnscrambleQuiz({ question, words, correctAnswer, explanation, onAnswer, showResult, isCorrect }: Props) {
+export default function UnscrambleQuiz({ question, prompt, words, correctAnswer, explanation, onAnswer, showResult, isCorrect }: Props) {
     const [selectedWords, setSelectedWords] = useState<string[]>([]);
     const [availableWords, setAvailableWords] = useState<string[]>(words);
 
@@ -42,7 +43,8 @@ export default function UnscrambleQuiz({ question, words, correctAnswer, explana
 
     return (
         <div>
-            <h2 className="text-2xl font-bold mb-6">{question}</h2>
+            <h2 className="text-2xl font-bold mb-2">{question}</h2>
+            {prompt && <p className="text-gray-600 mb-6 text-lg">{prompt}</p>}
 
             {/* Selected Words Area */}
             <div className="min-h-[100px] bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 mb-6 border-2 border-dashed border-indigo-300">
