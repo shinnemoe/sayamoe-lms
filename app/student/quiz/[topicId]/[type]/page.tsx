@@ -188,17 +188,23 @@ export default function QuizPage() {
 
                 {/* Quiz Component */}
                 <div className="bg-white rounded-2xl shadow-2xl p-8">
-                    {quizType === 'unscramble' && currentExercise.unscrambleAnswer && (
-                        <UnscrambleQuiz
-                            question={currentExercise.unscramblePrompt || 'Arrange these words to make a sentence:'}
-                            words={currentExercise.unscrambleAnswer.split(' ')}
-                            correctAnswer={currentExercise.unscrambleAnswer}
-                            explanation={currentExercise.explanation}
-                            onAnswer={handleAnswer}
-                            showResult={showResult}
-                            isCorrect={isCorrect}
-                        />
-                    )}
+                    {quizType === 'unscramble' && currentExercise.unscrambleAnswer && (() => {
+                        // Shuffle words so they're not in correct order
+                        const words = currentExercise.unscrambleAnswer.split(' ');
+                        const shuffled = [...words].sort(() => Math.random() - 0.5);
+
+                        return (
+                            <UnscrambleQuiz
+                                question={currentExercise.unscramblePrompt || 'Arrange these words to make a sentence:'}
+                                words={shuffled}
+                                correctAnswer={currentExercise.unscrambleAnswer}
+                                explanation={currentExercise.explanation}
+                                onAnswer={handleAnswer}
+                                showResult={showResult}
+                                isCorrect={isCorrect}
+                            />
+                        );
+                    })()}
 
                     {quizType === 'trueFalse' && currentExercise.tfStatement && (
                         <TrueFalseQuiz
