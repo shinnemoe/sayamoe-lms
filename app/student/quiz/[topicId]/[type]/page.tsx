@@ -62,7 +62,8 @@ export default function QuizPage() {
 
         // Get correct answer based on quiz type
         if (quizType === 'multipleChoice') {
-            correctAnswer = currentExercise.mcCorrectAnswer || '';
+            const correctIndex = currentExercise.mcCorrectAnswerIndex ?? 0;
+            correctAnswer = currentExercise.mcOptions?.[correctIndex]?.text || '';
             correct = answer === correctAnswer;
         } else if (quizType === 'unscramble') {
             correctAnswer = currentExercise.unscrambleAnswer || '';
@@ -209,14 +210,11 @@ export default function QuizPage() {
                         />
                     )}
 
-                    {quizType === 'multipleChoice' && currentExercise.mcQuestion && (
+                    {quizType === 'multipleChoice' && currentExercise.mcQuestion && currentExercise.mcOptions && (
                         <MultipleChoiceQuiz
                             question={currentExercise.mcQuestion}
-                            options={[
-                                currentExercise.mcCorrectAnswer || '',
-                                ...(currentExercise.mcDistractors || [])
-                            ].filter(Boolean)}
-                            correctAnswer={currentExercise.mcCorrectAnswer || ''}
+                            options={currentExercise.mcOptions.map(opt => opt.text)}
+                            correctAnswer={currentExercise.mcOptions[currentExercise.mcCorrectAnswerIndex ?? 0]?.text || ''}
                             explanation={currentExercise.explanation}
                             onAnswer={handleAnswer}
                             showResult={showResult}

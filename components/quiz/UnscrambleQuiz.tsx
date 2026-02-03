@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Props {
     question: string;
@@ -15,6 +15,14 @@ interface Props {
 export default function UnscrambleQuiz({ question, words, correctAnswer, explanation, onAnswer, showResult, isCorrect }: Props) {
     const [selectedWords, setSelectedWords] = useState<string[]>([]);
     const [availableWords, setAvailableWords] = useState<string[]>(words);
+
+    // Reset state when question changes (when showResult becomes false)
+    useEffect(() => {
+        if (!showResult) {
+            setSelectedWords([]);
+            setAvailableWords(words);
+        }
+    }, [showResult, words]);
 
     const handleWordClick = (word: string, fromAvailable: boolean) => {
         if (showResult) return;
