@@ -25,24 +25,53 @@ export interface Topic {
     createdAt: Date;
 }
 
+// Multiple Choice Answer Option (with optional icon/image)
+export interface MultipleChoiceOption {
+    text: string;
+    icon?: string;      // Lucide icon name (e.g., "Apple", "GraduationCap")
+    imageUrl?: string;  // Custom image URL from Firebase Storage
+}
+
 export interface Exercise {
     id: string;
     topicId: string;
-    question: string;
-    correctAnswer: string;
-    distractors?: string[];
+    quizType: 'multipleChoice' | 'unscramble' | 'trueFalse';
+
+    // Common fields
     order: number;
+    difficulty?: 'easy' | 'medium' | 'hard';
+    hints?: string;
     createdAt: Date;
+
+    // Multiple Choice fields
+    mcQuestion?: string;
+    mcOptions?: MultipleChoiceOption[];
+    mcCorrectAnswerIndex?: number;
+
+    // Unscramble fields
+    unscramblePrompt?: string;
+    unscrambleAnswer?: string;
+
+    // True/False fields
+    tfStatement?: string;
+    tfAnswer?: boolean;
+
+    // Backward compatibility (deprecated)
+    question?: string;
+    correctAnswer?: string;
+    distractors?: string[];
 }
 
 export interface Score {
     id: string;
     studentId: string;
     topicId: string;
+    quizType: string;  // Track score per quiz type
     score: number;
     maxScore: number;
     attempts: number;
     lastAttempt: Date;
+    bestScore?: number;  // Best score across all attempts
 }
 
 export type QuizType = 'unscramble' | 'trueFalse' | 'multipleChoice';
