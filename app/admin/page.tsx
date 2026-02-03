@@ -5,7 +5,7 @@ import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where } 
 import { db } from '@/lib/firebase';
 import { Topic, Exercise, User } from '@/types';
 import Papa from 'papaparse';
-import { Download, Upload, Plus, Trash2, Users, BookOpen, GraduationCap } from 'lucide-react';
+import { Download, Upload, Plus, Trash2, Users, BookOpen, GraduationCap, Package } from 'lucide-react';
 
 interface Class {
     id: string;
@@ -155,6 +155,20 @@ export default function AdminDashboard() {
         }
     };
 
+    const deleteBatch = async (batchId: string, count: number) => {
+        if (confirm(`Delete all ${count} exercises from this upload batch?`)) {
+            const exercisesQuery = query(
+                collection(db, 'exercises'),
+                where('uploadBatchId', '==', batchId)
+            );
+            const snapshot = await getDocs(exercisesQuery);
+            const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+            await Promise.all(deletePromises);
+            loadExercises(selectedTopic);
+            alert(`✅ Deleted ${count} exercises!`);
+        }
+    };
+
     const downloadTemplate = (quizType: 'multipleChoice' | 'unscramble' | 'trueFalse') => {
         let csvContent = '';
         let filename = '';
@@ -231,11 +245,15 @@ export default function AdminDashboard() {
 
                         let count = 0;
 
+                        // Generate unique batch ID for this upload
+                        const uploadBatchId = `batch_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
                         for (const row of rows) {
                             let exerciseData: any = {
                                 topicId: selectedTopic,
                                 quizType,
                                 order: exercises.length + count,
+                                uploadBatchId,  // Track which upload this exercise belongs to
                                 createdAt: new Date()
                             };
 
@@ -727,29 +745,61 @@ export default function AdminDashboard() {
                                     </label>
                                 </div>
 
-                                <div className="space-y-2 max-h-96 overflow-y-auto">
+                                <div className="space-y-4 max-h-96 overflow-y-auto">
                                     {exercises.length === 0 ? (
                                         <p className="text-gray-500 text-center py-8">No exercises yet. Upload a CSV!</p>
-                                    ) : (
-                                        exercises.map(ex => (
-                                            <div key={ex.id} className="flex items-start justify-between p-3 bg-gray-50 rounded-xl">
-                                                <div className="flex-1">
-                                                    <span className="text-xs font-semibold px-2 py-1 bg-indigo-100 text-indigo-700 rounded">
-                                                        {ex.quizType}
-                                                    </span>
-                                                    <p className="text-sm mt-1">
-                                                        {ex.mcQuestion || ex.unscramblePrompt || ex.tfStatement}
-                                                    </p>
+                                    ) : (() => {
+                                        // Group exercises by batch
+                                        const batchGroups: { [key: string]: Exercise[] } = {};
+                                        exercises.forEach(ex => {
+                                            const batch = ex.uploadBatchId || 'unbatched';
+                                            if (!batchGroups[batch]) batchGroups[batch] = [];
+                                            batchGroups[batch].push(ex);
+                                        });
+
+                                        return Object.entries(batchGroups).map(([batchId, batchExercises]) => (
+                                            <div key={batchId} className="border-2 border-indigo-200 rounded-xl p-3 bg-white">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <Package className="w-4 h-4 text-indigo-600" />
+                                                        <span className="font-semibold text-sm text-indigo-700">
+                                                            {batchId === 'unbatched' ? 'Individual Exercises' : `Upload Batch (${batchExercises.length} exercises)`}
+                                                        </span>
+                                                        <span className="text-xs bg-indigo-100 px-2 py-1 rounded">
+                                                            {batchExercises[0]?.quizType}
+                                                        </span>
+                                                    </div>
+                                                    {batchId !== 'unbatched' && (
+                                                        <button
+                                                            onClick={() => deleteBatch(batchId, batchExercises.length)}
+                                                            className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-xs font-semibold"
+                                                        >
+                                                            <Trash2 className="w-3 h-3" />
+                                                            Delete Batch
+                                                        </button>
+                                                    )}
                                                 </div>
-                                                <button
-                                                    onClick={() => deleteExercise(ex.id)}
-                                                    className="p-1 text-red-600 hover:bg-red-50 rounded-lg ml-2"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+                                                <div className="space-y-2 max-h-48 overflow-y-auto">
+                                                    {batchExercises.map(ex => (
+                                                        <div key={ex.id} className="flex items-start justify-between p-2 bg-gray-50 rounded-lg">
+                                                            <div className="flex-1">
+                                                                <p className="text-sm">
+                                                                    {ex.mcQuestion || ex.unscramblePrompt || ex.tfStatement}
+                                                                </p>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => deleteExercise(ex.id)}
+                                                                className="p-1 text-red-600 hover:bg-red-50 rounded ml-2"
+                                                                title="Delete single exercise"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        ))
-                                    )}
+                                        ));
+                                    })()}
                                 </div>
                             </>
                         ) : (

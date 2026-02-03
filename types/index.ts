@@ -42,6 +42,7 @@ export interface Exercise {
     difficulty?: 'easy' | 'medium' | 'hard';
     hints?: string;
     explanation?: string;  // Explanation shown when answer is wrong
+    uploadBatchId?: string;  // Groups exercises from same CSV upload
     createdAt: Date;
 
     // Multiple Choice fields
