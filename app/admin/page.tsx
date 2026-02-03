@@ -194,105 +194,118 @@ export default function AdminDashboard() {
             return;
         }
 
-        Papa.parse(file, {
-            header: true,
-            encoding: 'UTF-8',
-            complete: async (results: any) => {
-                try {
-                    const rows = results.data.filter((row: any) =>
-                        Object.values(row).some(val => val && String(val).trim())
-                    );
+        // Use FileReader with UTF-8 encoding to read the file first
+        const reader = new FileReader();
 
-                    if (rows.length === 0) {
-                        alert('❌ No valid data found in CSV');
-                        return;
-                    }
+        reader.onload = (event) => {
+            const text = event.target?.result as string;
 
-                    const headers = Object.keys(rows[0]).map(h => h.toLowerCase().trim());
-                    let quizType: 'multipleChoice' | 'unscramble' | 'trueFalse' | null = null;
+            Papa.parse(text, {
+                header: true,
+                complete: async (results: any) => {
+                    try {
+                        const rows = results.data.filter((row: any) =>
+                            Object.values(row).some(val => val && String(val).trim())
+                        );
 
-                    if (headers.includes('distractor1') || headers.includes('option1')) {
-                        quizType = 'multipleChoice';
-                    } else if (headers.includes('prompt')) {
-                        quizType = 'unscramble';
-                    } else if (headers.includes('statement')) {
-                        quizType = 'trueFalse';
-                    }
-
-                    if (!quizType) {
-                        alert('❌ Could not detect quiz type. Use templates!');
-                        return;
-                    }
-
-                    let count = 0;
-
-                    for (const row of rows) {
-                        let exerciseData: any = {
-                            topicId: selectedTopic,
-                            quizType,
-                            order: exercises.length + count,
-                            createdAt: new Date()
-                        };
-
-                        if (quizType === 'multipleChoice') {
-                            const question = row.question || row.Question;
-                            const correctAnswer = row.answer || row.correctAnswer;
-
-                            if (!question || !correctAnswer) continue;
-
-                            const options: string[] = [correctAnswer.trim()];
-
-                            for (let i = 1; i <= 10; i++) {
-                                const distractor = row[`distractor${i}`] || row[`option${i}`];
-                                if (distractor && String(distractor).trim()) {
-                                    options.push(String(distractor).trim());
-                                }
-                            }
-
-                            const shuffled = [...options].sort(() => Math.random() - 0.5);
-                            const correctIndex = shuffled.indexOf(correctAnswer.trim());
-
-                            exerciseData.mcQuestion = question.trim();
-                            exerciseData.mcOptions = shuffled.map((text: string) => ({ text }));
-                            exerciseData.mcCorrectAnswerIndex = correctIndex;
-
-                        } else if (quizType === 'unscramble') {
-                            const prompt = row.prompt || row.Prompt || 'Arrange the words in the correct order';
-                            const answer = row.answer || row.sentence;
-
-                            if (!answer) continue;
-
-                            exerciseData.unscramblePrompt = String(prompt).trim();
-                            exerciseData.unscrambleAnswer = String(answer).trim();
-
-                        } else if (quizType === 'trueFalse') {
-                            const statement = row.statement || row.Statement;
-                            const answer = row.answer || row.Answer;
-
-                            if (!statement || !answer) continue;
-
-                            exerciseData.tfStatement = String(statement).trim();
-                            exerciseData.tfAnswer = String(answer).toLowerCase() === 'true' ||
-                                String(answer).toLowerCase() === 't' ||
-                                answer === '1';
+                        if (rows.length === 0) {
+                            alert('❌ No valid data found in CSV');
+                            return;
                         }
 
-                        await addDoc(collection(db, 'exercises'), exerciseData);
-                        count++;
-                    }
+                        const headers = Object.keys(rows[0]).map(h => h.toLowerCase().trim());
+                        let quizType: 'multipleChoice' | 'unscramble' | 'trueFalse' | null = null;
 
-                    alert(`✅ Imported ${count} ${quizType} exercises!`);
-                    loadExercises(selectedTopic);
-                    e.target.value = '';
-                } catch (error: any) {
-                    console.error(error);
-                    alert('❌ Error importing: ' + error.message);
+                        if (headers.includes('distractor1') || headers.includes('option1')) {
+                            quizType = 'multipleChoice';
+                        } else if (headers.includes('prompt')) {
+                            quizType = 'unscramble';
+                        } else if (headers.includes('statement')) {
+                            quizType = 'trueFalse';
+                        }
+
+                        if (!quizType) {
+                            alert('❌ Could not detect quiz type. Use templates!');
+                            return;
+                        }
+
+                        let count = 0;
+
+                        for (const row of rows) {
+                            let exerciseData: any = {
+                                topicId: selectedTopic,
+                                quizType,
+                                order: exercises.length + count,
+                                createdAt: new Date()
+                            };
+
+                            if (quizType === 'multipleChoice') {
+                                const question = row.question || row.Question;
+                                const correctAnswer = row.answer || row.correctAnswer;
+
+                                if (!question || !correctAnswer) continue;
+
+                                const options: string[] = [correctAnswer.trim()];
+
+                                for (let i = 1; i <= 10; i++) {
+                                    const distractor = row[`distractor${i}`] || row[`option${i}`];
+                                    if (distractor && String(distractor).trim()) {
+                                        options.push(String(distractor).trim());
+                                    }
+                                }
+
+                                const shuffled = [...options].sort(() => Math.random() - 0.5);
+                                const correctIndex = shuffled.indexOf(correctAnswer.trim());
+
+                                exerciseData.mcQuestion = question.trim();
+                                exerciseData.mcOptions = shuffled.map((text: string) => ({ text }));
+                                exerciseData.mcCorrectAnswerIndex = correctIndex;
+
+                            } else if (quizType === 'unscramble') {
+                                const prompt = row.prompt || row.Prompt || 'Arrange the words in the correct order';
+                                const answer = row.answer || row.sentence;
+
+                                if (!answer) continue;
+
+                                exerciseData.unscramblePrompt = String(prompt).trim();
+                                exerciseData.unscrambleAnswer = String(answer).trim();
+
+                            } else if (quizType === 'trueFalse') {
+                                const statement = row.statement || row.Statement;
+                                const answer = row.answer || row.Answer;
+
+                                if (!statement || !answer) continue;
+
+                                exerciseData.tfStatement = String(statement).trim();
+                                exerciseData.tfAnswer = String(answer).toLowerCase() === 'true' ||
+                                    String(answer).toLowerCase() === 't' ||
+                                    answer === '1';
+                            }
+
+                            await addDoc(collection(db, 'exercises'), exerciseData);
+                            count++;
+                        }
+
+                        alert(`✅ Imported ${count} ${quizType} exercises!`);
+                        loadExercises(selectedTopic);
+                        e.target.value = '';
+                    } catch (error: any) {
+                        console.error(error);
+                        alert('❌ Error importing: ' + error.message);
+                    }
+                },
+                error: (error: any) => {
+                    alert('❌ Error parsing CSV: ' + error.message);
                 }
-            },
-            error: (error: any) => {
-                alert('❌ Error parsing CSV: ' + error.message);
-            }
-        });
+            });
+        };
+
+        reader.onerror = () => {
+            alert('❌ Error reading file');
+        };
+
+        // Read the file as UTF-8 text
+        reader.readAsText(file, 'UTF-8');
     };
 
     const getStudentsInClass = (classId: string) => {
