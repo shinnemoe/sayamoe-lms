@@ -196,6 +196,7 @@ export default function AdminDashboard() {
 
         Papa.parse(file, {
             header: true,
+            encoding: 'UTF-8',
             complete: async (results: any) => {
                 try {
                     const rows = results.data.filter((row: any) =>
