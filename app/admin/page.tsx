@@ -393,7 +393,10 @@ export default function AdminDashboard() {
                                     icon: batchEmoji || findBestIcon(text)
                                 }));
                                 exerciseData.mcCorrectAnswerIndex = correctIndex;
-                                exerciseData.batchEmoji = batchEmoji || undefined;  // Store batch emoji
+                                // Only store batch emoji if it exists
+                                if (batchEmoji) {
+                                    exerciseData.batchEmoji = batchEmoji;
+                                }
 
                                 // Optional explanation
                                 if (row.explanation) {
@@ -413,7 +416,10 @@ export default function AdminDashboard() {
                                 }
                                 exerciseData.unscramblePrompt = String(prompt).trim();
                                 exerciseData.unscrambleAnswer = String(answer).trim();
-                                exerciseData.batchEmoji = batchEmoji || undefined;  // Store batch emoji
+                                // Only store batch emoji if it exists
+                                if (batchEmoji) {
+                                    exerciseData.batchEmoji = batchEmoji;
+                                }
 
                                 // Optional explanation
                                 if (row.explanation) {
@@ -430,7 +436,10 @@ export default function AdminDashboard() {
                                 exerciseData.tfAnswer = String(answer).toLowerCase() === 'true' ||
                                     String(answer).toLowerCase() === 't' ||
                                     answer === '1';
-                                exerciseData.batchEmoji = batchEmoji || undefined;  // Store batch emoji
+                                // Only store batch emoji if it exists
+                                if (batchEmoji) {
+                                    exerciseData.batchEmoji = batchEmoji;
+                                }
 
                                 // Optional explanation
                                 if (row.explanation) {
