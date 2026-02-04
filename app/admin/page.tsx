@@ -79,8 +79,9 @@ export default function AdminDashboard() {
         const usersSnapshot = await getDocs(usersQuery);
         const usersData = usersSnapshot.docs.map(doc => ({
             id: doc.id,
+            uid: doc.id,
             ...doc.data()
-        })) as User[];
+        } as unknown as User));
 
         // Filter out guest users - they don't need to be managed by admin
         const realStudents = usersData.filter(user => !(user as any).isGuest);
