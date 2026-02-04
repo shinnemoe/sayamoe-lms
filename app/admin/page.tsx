@@ -17,6 +17,9 @@ interface Class {
 }
 
 export default function AdminDashboard() {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [passwordInput, setPasswordInput] = useState('');
+    const [passwordError, setPasswordError] = useState('');
     const [activeTab, setActiveTab] = useState<'classes' | 'topics' | 'exercises'>('classes');
 
     // Classes
@@ -34,9 +37,10 @@ export default function AdminDashboard() {
     const [selectedTopic, setSelectedTopic] = useState<string>('');
     const [newTopicName, setNewTopicName] = useState('');
     const [newTopicDesc, setNewTopicDesc] = useState('');
+    const [newTopicEmoji, setNewTopicEmoji] = useState('');
     const [topicClassIds, setTopicClassIds] = useState<string[]>([]);
     const [editingTopic, setEditingTopic] = useState<string | null>(null);
-    const [editingClassIds, setEditingClassIds] = useState<string[]>([]);
+    const [editingTopicData, setEditingTopicData] = useState<{ name: string, description: string, emoji: string, classIds: string[] } | null>(null);
 
     // Exercises
     const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -44,10 +48,20 @@ export default function AdminDashboard() {
     const [editingBatchEmoji, setEditingBatchEmoji] = useState<{ batchId: string, emoji: string } | null>(null);
 
     useEffect(() => {
-        loadClasses();
-        loadStudents();
-        loadTopics();
+        // Check if already authenticated in session
+        const auth = sessionStorage.getItem('adminAuth');
+        if (auth === 'true') {
+            setIsAuthenticated(true);
+        }
     }, []);
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            loadClasses();
+            loadStudents();
+            loadTopics();
+        }
+    }, [isAuthenticated]);
 
     useEffect(() => {
         if (selectedTopic) {
@@ -61,22 +75,18 @@ export default function AdminDashboard() {
     };
 
     const loadStudents = async () => {
-        const q = query(collection(db, 'users'), where('role', '==', 'student'));
-        const snapshot = await getDocs(q);
-        const students = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                uid: doc.id,
-                email: data.email,
-                role: data.role,
-                name: data.name,
-                classId: data.classId,
-                createdAt: data.createdAt
-            } as User;
-        });
-        setAllStudents(students);
-        setUnassignedStudents(students.filter(s => !s.classId));
+        const usersQuery = query(collection(db, 'users'), where('role', '==', 'student'));
+        const usersSnapshot = await getDocs(usersQuery);
+        const usersData = usersSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        })) as User[];
+
+        // Filter out guest users - they don't need to be managed by admin
+        const realStudents = usersData.filter(user => !(user as any).isGuest);
+
+        setAllStudents(realStudents);
+        setUnassignedStudents(realStudents.filter(u => !u.classId));
     };
 
     const loadTopics = async () => {
@@ -130,18 +140,27 @@ export default function AdminDashboard() {
         await addDoc(collection(db, 'topics'), {
             name: newTopicName,
             description: newTopicDesc,
+            emoji: newTopicEmoji || undefined,
             teacherId: 'admin',
             classIds: topicClassIds,
             createdAt: new Date()
         });
         setNewTopicName('');
         setNewTopicDesc('');
+        setNewTopicEmoji('');
         setTopicClassIds([]);
         loadTopics();
     };
 
-    const updateTopicClasses = async (topicId: string, classIds: string[]) => {
-        await updateDoc(doc(db, 'topics', topicId), { classIds });
+    const updateTopic = async (topicId: string, data: { name: string, description: string, emoji?: string, classIds: string[] }) => {
+        await updateDoc(doc(db, 'topics', topicId), {
+            name: data.name,
+            description: data.description,
+            emoji: data.emoji || null,
+            classIds: data.classIds
+        });
+        setEditingTopic(null);
+        setEditingTopicData(null);
         loadTopics();
     };
 
@@ -205,6 +224,58 @@ export default function AdminDashboard() {
             alert('❌ Error updating batch emoji: ' + error.message);
         }
     };
+
+    const handlePasswordSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (passwordInput === '1001') {
+            setIsAuthenticated(true);
+            sessionStorage.setItem('adminAuth', 'true');
+            setPasswordError('');
+        } else {
+            setPasswordError('Incorrect password');
+        }
+    };
+
+    // Show password screen if not authenticated
+    if (!isAuthenticated) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center p-6">
+                <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+                    <div className="text-center mb-8">
+                        <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <GraduationCap className="w-8 h-8 text-white" />
+                        </div>
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Access</h1>
+                        <p className="text-gray-600">Enter password to continue</p>
+                    </div>
+                    <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                        <div>
+                            <input
+                                type="password"
+                                value={passwordInput}
+                                onChange={(e) => {
+                                    setPasswordInput(e.target.value);
+                                    setPasswordError('');
+                                }}
+                                placeholder="Enter password"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-center text-lg"
+                                autoFocus
+                            />
+                            {passwordError && (
+                                <p className="text-red-600 text-sm mt-2 text-center">{passwordError}</p>
+                            )}
+                        </div>
+                        <button
+                            type="submit"
+                            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl hover:shadow-lg font-semibold"
+                        >
+                            Login
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
 
     const downloadTemplate = (quizType: 'multipleChoice' | 'unscramble' | 'trueFalse') => {
         let csvContent = '';
@@ -593,6 +664,14 @@ export default function AdminDashboard() {
                                     onChange={(e) => setNewTopicDesc(e.target.value)}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-xl"
                                 />
+                                <input
+                                    type="text"
+                                    placeholder="Emoji (optional, e.g., 📚 🎨 🔬)"
+                                    value={newTopicEmoji}
+                                    onChange={(e) => setNewTopicEmoji(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-xl text-center text-2xl"
+                                    maxLength={2}
+                                />
                                 <div>
                                     <p className="text-sm font-semibold text-gray-700 mb-2">Assign to classes:</p>
                                     <div className="grid grid-cols-2 gap-2">
@@ -632,7 +711,10 @@ export default function AdminDashboard() {
                                     <div key={topic.id} className="p-4 border border-gray-200 rounded-xl">
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
-                                                <h3 className="font-semibold text-gray-900">{topic.name}</h3>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    {topic.emoji && <span className="text-2xl">{topic.emoji}</span>}
+                                                    <h3 className="font-semibold text-gray-900">{topic.name}</h3>
+                                                </div>
                                                 <p className="text-sm text-gray-600 mb-2">{topic.description}</p>
                                                 <div className="flex flex-wrap gap-2">
                                                     {assignedClasses.length === 0 ? (
@@ -650,11 +732,16 @@ export default function AdminDashboard() {
                                                 <button
                                                     onClick={() => {
                                                         setEditingTopic(topic.id);
-                                                        setEditingClassIds(topic.classIds || []);
+                                                        setEditingTopicData({
+                                                            name: topic.name,
+                                                            description: topic.description,
+                                                            emoji: topic.emoji || '',
+                                                            classIds: topic.classIds || []
+                                                        });
                                                     }}
                                                     className="px-3 py-1 rounded-lg text-sm bg-blue-100 text-blue-700 hover:bg-blue-200"
                                                 >
-                                                    Edit Classes
+                                                    Edit
                                                 </button>
                                                 <button
                                                     onClick={() => deleteTopic(topic.id)}
@@ -669,51 +756,87 @@ export default function AdminDashboard() {
                             })}
                         </div>
 
-                        {/* Edit Topic Classes Modal */}
-                        {editingTopic && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setEditingTopic(null)}>
-                                <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-                                    <h3 className="text-xl font-bold mb-4 text-gray-900">Assign Classes to Topic</h3>
-                                    <p className="text-sm text-gray-600 mb-4">
-                                        Topic: <span className="font-semibold">{topics.find(t => t.id === editingTopic)?.name}</span>
-                                    </p>
-                                    <div className="space-y-2 mb-6">
-                                        {classes.map(cls => (
-                                            <label key={cls.id} className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={editingClassIds.includes(cls.id)}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked) {
-                                                            setEditingClassIds([...editingClassIds, cls.id]);
-                                                        } else {
-                                                            setEditingClassIds(editingClassIds.filter(id => id !== cls.id));
-                                                        }
-                                                    }}
-                                                    className="rounded text-indigo-600 w-4 h-4"
-                                                />
-                                                <span className="font-medium">{cls.name}</span>
+                        {/* Edit Topic Modal */}
+                        {editingTopic && editingTopicData && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => { setEditingTopic(null); setEditingTopicData(null); }}>
+                                <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                                    <h3 className="text-xl font-bold mb-4 text-gray-900">Edit Topic</h3>
+
+                                    <div className="space-y-4 mb-6">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Topic Name</label>
+                                            <input
+                                                type="text"
+                                                value={editingTopicData.name}
+                                                onChange={(e) => setEditingTopicData({ ...editingTopicData, name: e.target.value })}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                                            <input
+                                                type="text"
+                                                value={editingTopicData.description}
+                                                onChange={(e) => setEditingTopicData({ ...editingTopicData, description: e.target.value })}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                                <Smile className="w-4 h-4" />
+                                                Topic Emoji (Optional)
                                             </label>
-                                        ))}
-                                        {classes.length === 0 && (
-                                            <p className="text-gray-500 text-sm text-center py-4">No classes created yet. Go to Classes tab to create one.</p>
-                                        )}
+                                            <input
+                                                type="text"
+                                                placeholder="e.g., 📚 🎨 🔬"
+                                                value={editingTopicData.emoji}
+                                                onChange={(e) => setEditingTopicData({ ...editingTopicData, emoji: e.target.value })}
+                                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-center text-3xl"
+                                                maxLength={2}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Assign to Classes</label>
+                                            <div className="space-y-2 max-h-40 overflow-y-auto">
+                                                {classes.map(cls => (
+                                                    <label key={cls.id} className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-100">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={editingTopicData.classIds.includes(cls.id)}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setEditingTopicData({ ...editingTopicData, classIds: [...editingTopicData.classIds, cls.id] });
+                                                                } else {
+                                                                    setEditingTopicData({ ...editingTopicData, classIds: editingTopicData.classIds.filter(id => id !== cls.id) });
+                                                                }
+                                                            }}
+                                                            className="rounded text-indigo-600 w-4 h-4"
+                                                        />
+                                                        <span className="font-medium text-sm">{cls.name}</span>
+                                                    </label>
+                                                ))}
+                                                {classes.length === 0 && (
+                                                    <p className="text-gray-500 text-sm text-center py-4">No classes created yet.</p>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
+
                                     <div className="flex gap-2">
                                         <button
-                                            onClick={() => setEditingTopic(null)}
+                                            onClick={() => { setEditingTopic(null); setEditingTopicData(null); }}
                                             className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50"
                                         >
                                             Cancel
                                         </button>
                                         <button
-                                            onClick={() => {
-                                                updateTopicClasses(editingTopic, editingClassIds);
-                                                setEditingTopic(null);
-                                            }}
+                                            onClick={() => updateTopic(editingTopic, editingTopicData)}
                                             className="flex-1 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg"
                                         >
-                                            Save
+                                            Save Changes
                                         </button>
                                     </div>
                                 </div>

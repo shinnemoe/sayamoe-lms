@@ -20,6 +20,7 @@ export interface Topic {
     id: string;
     name: string;
     description: string;
+    emoji?: string;  // Optional custom emoji for topic
     classIds: string[];
     teacherId: string;
     createdAt: Date;

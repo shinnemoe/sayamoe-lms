@@ -50,6 +50,34 @@ function LoginForm() {
         }
     };
 
+    const handleGuestLogin = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            // Generate a random guest email
+            const guestEmail = `guest${Math.random().toString(36).substring(2, 9)}@sayamoe.guest`;
+            const guestPassword = 'guest123';
+
+            // Create guest account
+            const userCredential = await createUserWithEmailAndPassword(auth, guestEmail, guestPassword);
+
+            // Store guest user data
+            await setDoc(doc(db, 'users', userCredential.user.uid), {
+                email: guestEmail,
+                role: 'student',
+                name: 'Guest Student',
+                isGuest: true,
+                createdAt: new Date()
+            });
+
+            router.push('/student/dashboard');
+        } catch (err: any) {
+            setError('Failed to create guest account: ' + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
             <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 w-full max-w-md">
@@ -105,6 +133,16 @@ function LoginForm() {
                     >
                         {isSignUp ? 'Already have an account? Login' : "Don't have an account? Sign Up"}
                     </button>
+
+                    {role === 'student' && (
+                        <button
+                            onClick={handleGuestLogin}
+                            disabled={loading}
+                            className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 disabled:opacity-50 transition-all font-semibold border-2 border-gray-200"
+                        >
+                            👤 Continue as Guest
+                        </button>
+                    )}
 
                     <div className="flex gap-2 justify-center">
                         <button

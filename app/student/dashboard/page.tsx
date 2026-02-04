@@ -32,14 +32,44 @@ export default function StudentDashboard() {
             }
 
             setUser({ ...currentUser, ...userData });
-            await loadTopics(userData.classId);
+            await loadTopics(userData);
         });
 
         return () => unsubscribe();
     }, [router]);
 
-    const loadTopics = async (classId?: string) => {
-        if (!classId) {
+    const loadTopics = async (userData: any) => {
+        // For guest users, show all topics
+        if (userData.isGuest) {
+            try {
+                const topicsSnapshot = await getDocs(collection(db, 'topics'));
+                const topicsData = topicsSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                })) as Topic[];
+
+                setTopics(topicsData);
+
+                // Load scores
+                const scoresData: Record<string, Score> = {};
+                for (const topic of topicsData) {
+                    const scoreDoc = await getDoc(doc(db, 'scores', `${auth.currentUser!.uid}_${topic.id}`));
+                    if (scoreDoc.exists()) {
+                        scoresData[topic.id] = scoreDoc.data() as Score;
+                    }
+                }
+                setScores(scoresData);
+                setLoading(false);
+                return;
+            } catch (error) {
+                console.error('Error loading topics for guest:', error);
+                setLoading(false);
+                return;
+            }
+        }
+
+        // For regular students, require class assignment
+        if (!userData.classId) {
             setLoading(false);
             return;
         }
@@ -47,7 +77,7 @@ export default function StudentDashboard() {
         try {
             const topicsQuery = query(
                 collection(db, 'topics'),
-                where('classIds', 'array-contains', classId)
+                where('classIds', 'array-contains', userData.classId)
             );
             const topicsSnapshot = await getDocs(topicsQuery);
             const topicsData = topicsSnapshot.docs.map(doc => ({
@@ -122,7 +152,11 @@ export default function StudentDashboard() {
                                 >
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="p-3 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl group-hover:from-indigo-200 group-hover:to-purple-200 transition-all">
-                                            <BookOpen className="w-8 h-8 text-indigo-600" />
+                                            {topic.emoji ? (
+                                                <span className="text-4xl">{topic.emoji}</span>
+                                            ) : (
+                                                <BookOpen className="w-8 h-8 text-indigo-600" />
+                                            )}
                                         </div>
                                         {score && (
                                             <div className="relative w-16 h-16">
