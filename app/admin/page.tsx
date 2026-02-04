@@ -5,15 +5,87 @@ import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where } 
 import { db } from '@/lib/firebase';
 import { Topic, Exercise, User } from '@/types';
 import Papa from 'papaparse';
-import { Download, Upload, Plus, Trash2, Users, BookOpen, GraduationCap, Package, Smile } from 'lucide-react';
+import { Download, Upload, Plus, Trash2, Users, BookOpen, GraduationCap, Package, Smile, GripVertical } from 'lucide-react';
 import { parseMultipleChoiceCSV, parseUnscrambleCSV, parseTrueFalseCSV } from '@/lib/csvParser';
 import { findBestIcon } from '@/lib/iconMapper';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Class {
     id: string;
     name: string;
     teacherId: string;
     createdAt: Date;
+}
+
+// Sortable Topic Item Component
+function SortableTopicItem({ topic, classes, onEdit, onDelete }: {
+    topic: Topic;
+    classes: Class[];
+    onEdit: (topic: Topic) => void;
+    onDelete: (id: string) => void;
+}) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+    } = useSortable({ id: topic.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+
+    const assignedClasses = classes.filter(c => topic.classIds?.includes(c.id));
+
+    return (
+        <div ref={setNodeRef} style={style} className="p-4 border border-gray-200 rounded-xl bg-white hover:shadow-md">
+            <div className="flex items-start gap-3">
+                <button
+                    {...attributes}
+                    {...listeners}
+                    className="cursor-grab active:cursor-grabbing p-2 hover:bg-gray-100 rounded-lg"
+                >
+                    <GripVertical className="w-5 h-5 text-gray-400" />
+                </button>
+                <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                        {topic.emoji && <span className="text-2xl">{topic.emoji}</span>}
+                        <h3 className="font-semibold text-gray-900">{topic.name}</h3>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">{topic.description}</p>
+                    <div className="flex flex-wrap gap-2">
+                        {assignedClasses.length === 0 ? (
+                            <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">Not assigned to any class</span>
+                        ) : (
+                            assignedClasses.map(cls => (
+                                <span key={cls.id} className="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded">
+                                    {cls.name}
+                                </span>
+                            ))
+                        )}
+                    </div>
+                </div>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => onEdit(topic)}
+                        className="px-3 py-1 rounded-lg text-sm bg-blue-100 text-blue-700 hover:bg-blue-200"
+                    >
+                        Edit
+                    </button>
+                    <button
+                        onClick={() => onDelete(topic.id)}
+                        className="p-1 text-red-600 hover:bg-red-50 rounded-lg"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export default function AdminDashboard() {
@@ -46,6 +118,36 @@ export default function AdminDashboard() {
     const [exercises, setExercises] = useState<Exercise[]>([]);
     const [batchEmoji, setBatchEmoji] = useState<string>('');
     const [editingBatchEmoji, setEditingBatchEmoji] = useState<{ batchId: string, emoji: string } | null>(null);
+
+    // Drag and drop sensors
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    // Handle drag end for topic reordering
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (over && active.id !== over.id) {
+            const oldIndex = topics.findIndex(t => t.id === active.id);
+            const newIndex = topics.findIndex(t => t.id === over.id);
+
+            const reorderedTopics = arrayMove(topics, oldIndex, newIndex);
+
+            // Update order in Firestore
+            const batch: Promise<void>[] = [];
+            reorderedTopics.forEach((topic, index) => {
+                batch.push(updateDoc(doc(db, 'topics', topic.id), { order: index }));
+            });
+
+            await Promise.all(batch);
+            setTopics(reorderedTopics);
+        }
+    };
+
 
     useEffect(() => {
         // Check if already authenticated in session
@@ -138,12 +240,15 @@ export default function AdminDashboard() {
 
     const createTopic = async () => {
         if (!newTopicName) return;
+        // Auto-assign order based on existing topics count
+        const order = topics.length;
         await addDoc(collection(db, 'topics'), {
             name: newTopicName,
             description: newTopicDesc,
             emoji: newTopicEmoji || undefined,
             teacherId: 'admin',
             classIds: topicClassIds,
+            order,
             createdAt: new Date()
         });
         setNewTopicName('');
@@ -714,57 +819,29 @@ export default function AdminDashboard() {
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            {topics.map(topic => {
-                                const assignedClasses = classes.filter(c => topic.classIds?.includes(c.id));
-                                return (
-                                    <div key={topic.id} className="p-4 border border-gray-200 rounded-xl">
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    {topic.emoji && <span className="text-2xl">{topic.emoji}</span>}
-                                                    <h3 className="font-semibold text-gray-900">{topic.name}</h3>
-                                                </div>
-                                                <p className="text-sm text-gray-600 mb-2">{topic.description}</p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {assignedClasses.length === 0 ? (
-                                                        <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">Not assigned to any class</span>
-                                                    ) : (
-                                                        assignedClasses.map(cls => (
-                                                            <span key={cls.id} className="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded">
-                                                                {cls.name}
-                                                            </span>
-                                                        ))
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingTopic(topic.id);
-                                                        setEditingTopicData({
-                                                            name: topic.name,
-                                                            description: topic.description,
-                                                            emoji: topic.emoji || '',
-                                                            classIds: topic.classIds || []
-                                                        });
-                                                    }}
-                                                    className="px-3 py-1 rounded-lg text-sm bg-blue-100 text-blue-700 hover:bg-blue-200"
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    onClick={() => deleteTopic(topic.id)}
-                                                    className="p-1 text-red-600 hover:bg-red-50 rounded-lg"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                            <SortableContext items={topics.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                                <div className="space-y-2">
+                                    {topics.sort((a, b) => (a.order || 0) - (b.order || 0)).map(topic => (
+                                        <SortableTopicItem
+                                            key={topic.id}
+                                            topic={topic}
+                                            classes={classes}
+                                            onEdit={(topic) => {
+                                                setEditingTopic(topic.id);
+                                                setEditingTopicData({
+                                                    name: topic.name,
+                                                    description: topic.description,
+                                                    emoji: topic.emoji || '',
+                                                    classIds: topic.classIds || []
+                                                });
+                                            }}
+                                            onDelete={deleteTopic}
+                                        />
+                                    ))}
+                                </div>
+                            </SortableContext>
+                        </DndContext>
 
                         {/* Edit Topic Modal */}
                         {editingTopic && editingTopicData && (

@@ -52,8 +52,11 @@ export default function StudentDashboard() {
                     ...doc.data()
                 })) as Topic[];
 
-                console.log('Loaded topics for guest:', topicsData);
-                setTopics(topicsData);
+                // Sort by order field
+                const sortedTopics = topicsData.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+                console.log('Loaded topics for guest:', sortedTopics);
+                setTopics(sortedTopics);
 
                 // Load scores
                 const scoresData: Record<string, Score> = {};
@@ -90,7 +93,9 @@ export default function StudentDashboard() {
                 ...doc.data()
             })) as Topic[];
 
-            setTopics(topicsData);
+            // Sort by order field
+            const sortedTopics = topicsData.sort((a, b) => (a.order || 0) - (b.order || 0));
+            setTopics(sortedTopics);
 
             // Load scores - get best score for each topic
             const scoresData: Record<string, Score> = {};

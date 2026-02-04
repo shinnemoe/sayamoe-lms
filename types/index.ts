@@ -24,6 +24,7 @@ export interface Topic {
     emoji?: string;  // Optional custom emoji for topic
     classIds: string[];
     teacherId: string;
+    order: number;  // For sorting topics on student dashboard
     createdAt: Date;
 }
 
