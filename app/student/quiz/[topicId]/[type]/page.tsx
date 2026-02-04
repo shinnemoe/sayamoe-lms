@@ -220,7 +220,7 @@ export default function QuizPage() {
                     {quizType === 'multipleChoice' && currentExercise.mcQuestion && currentExercise.mcOptions && (
                         <MultipleChoiceQuiz
                             question={currentExercise.mcQuestion}
-                            options={currentExercise.mcOptions.map(opt => opt.text)}
+                            options={currentExercise.mcOptions}  // Pass full objects with icons
                             correctAnswer={currentExercise.mcOptions[currentExercise.mcCorrectAnswerIndex ?? 0]?.text || ''}
                             explanation={currentExercise.explanation}
                             onAnswer={handleAnswer}

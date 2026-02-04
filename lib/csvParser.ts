@@ -1,4 +1,5 @@
 import { QuizType, Exercise, MultipleChoiceOption } from '@/types';
+import { findBestIcon } from './iconMapper';
 
 export interface CSVRow {
     [key: string]: string;
@@ -25,7 +26,7 @@ export function detectQuizType(headers: string[]): QuizType | null {
     return null;
 }
 
-export function parseMultipleChoiceCSV(rows: CSVRow[], topicId: string): Partial<Exercise>[] {
+export function parseMultipleChoiceCSV(rows: CSVRow[], topicId: string, batchEmoji?: string): Partial<Exercise>[] {
     return rows.map((row, index) => {
         const question = row.question || row.Question;
         const correctAnswer = row.answer || row.correctAnswer || row['correct answer'];
@@ -44,7 +45,12 @@ export function parseMultipleChoiceCSV(rows: CSVRow[], topicId: string): Partial
         const shuffled = [...options].sort(() => Math.random() - 0.5);
         const correctIndex = shuffled.indexOf(correctAnswer);
 
-        const mcOptions: MultipleChoiceOption[] = shuffled.map(text => ({ text }));
+        // Auto-assign icons to each option based on text content
+        // If batchEmoji is provided, use it for all options; otherwise auto-match
+        const mcOptions: MultipleChoiceOption[] = shuffled.map(text => ({
+            text,
+            icon: batchEmoji || findBestIcon(text)  // 🎯 Batch emoji override or auto-assign
+        }));
 
         return {
             topicId,
@@ -52,13 +58,14 @@ export function parseMultipleChoiceCSV(rows: CSVRow[], topicId: string): Partial
             mcQuestion: question,
             mcOptions,
             mcCorrectAnswerIndex: correctIndex,
+            batchEmoji: batchEmoji,  // Store batch emoji for reference
             order: index,
             createdAt: new Date()
         };
     });
 }
 
-export function parseUnscrambleCSV(rows: CSVRow[], topicId: string): Partial<Exercise>[] {
+export function parseUnscrambleCSV(rows: CSVRow[], topicId: string, batchEmoji?: string): Partial<Exercise>[] {
     return rows.map((row, index) => {
         const prompt = row.prompt || row.Prompt || row.question || 'Arrange the words in the correct order';
         const answer = row.answer || row.sentence || row.correctAnswer;
@@ -68,13 +75,14 @@ export function parseUnscrambleCSV(rows: CSVRow[], topicId: string): Partial<Exe
             quizType: 'unscramble' as QuizType,
             unscramblePrompt: prompt,
             unscrambleAnswer: answer,
+            batchEmoji: batchEmoji,
             order: index,
             createdAt: new Date()
         };
     });
 }
 
-export function parseTrueFalseCSV(rows: CSVRow[], topicId: string): Partial<Exercise>[] {
+export function parseTrueFalseCSV(rows: CSVRow[], topicId: string, batchEmoji?: string): Partial<Exercise>[] {
     return rows.map((row, index) => {
         const statement = row.statement || row.Statement || row.question;
         const answer = row.answer || row.Answer || row.correct;
@@ -87,6 +95,7 @@ export function parseTrueFalseCSV(rows: CSVRow[], topicId: string): Partial<Exer
             quizType: 'trueFalse' as QuizType,
             tfStatement: statement,
             tfAnswer: boolAnswer,
+            batchEmoji: batchEmoji,
             order: index,
             createdAt: new Date()
         };

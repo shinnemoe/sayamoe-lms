@@ -43,6 +43,7 @@ export interface Exercise {
     hints?: string;
     explanation?: string;  // Explanation shown when answer is wrong
     uploadBatchId?: string;  // Groups exercises from same CSV upload
+    batchEmoji?: string;  // Optional custom emoji for all options in this batch
     createdAt: Date;
 
     // Multiple Choice fields

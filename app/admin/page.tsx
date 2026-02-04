@@ -5,7 +5,9 @@ import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where } 
 import { db } from '@/lib/firebase';
 import { Topic, Exercise, User } from '@/types';
 import Papa from 'papaparse';
-import { Download, Upload, Plus, Trash2, Users, BookOpen, GraduationCap, Package } from 'lucide-react';
+import { Download, Upload, Plus, Trash2, Users, BookOpen, GraduationCap, Package, Smile } from 'lucide-react';
+import { parseMultipleChoiceCSV, parseUnscrambleCSV, parseTrueFalseCSV } from '@/lib/csvParser';
+import { findBestIcon } from '@/lib/iconMapper';
 
 interface Class {
     id: string;
@@ -38,6 +40,8 @@ export default function AdminDashboard() {
 
     // Exercises
     const [exercises, setExercises] = useState<Exercise[]>([]);
+    const [batchEmoji, setBatchEmoji] = useState<string>('');
+    const [editingBatchEmoji, setEditingBatchEmoji] = useState<{ batchId: string, emoji: string } | null>(null);
 
     useEffect(() => {
         loadClasses();
@@ -169,6 +173,39 @@ export default function AdminDashboard() {
         }
     };
 
+    const updateBatchEmoji = async (batchId: string, newEmoji: string) => {
+        try {
+            const exercisesQuery = query(
+                collection(db, 'exercises'),
+                where('uploadBatchId', '==', batchId)
+            );
+            const snapshot = await getDocs(exercisesQuery);
+
+            const updatePromises = snapshot.docs.map(async (docSnapshot) => {
+                const exercise = docSnapshot.data() as Exercise;
+                const updates: any = { batchEmoji: newEmoji || null };
+
+                // If it's multiple choice, update all option icons
+                if (exercise.quizType === 'multipleChoice' && exercise.mcOptions) {
+                    updates.mcOptions = exercise.mcOptions.map((opt: any) => ({
+                        text: opt.text,
+                        icon: newEmoji || findBestIcon(opt.text)
+                    }));
+                }
+
+                return updateDoc(docSnapshot.ref, updates);
+            });
+
+            await Promise.all(updatePromises);
+            loadExercises(selectedTopic);
+            setEditingBatchEmoji(null);
+            alert(`✅ Updated ${snapshot.docs.length} exercises with ${newEmoji || 'auto-matched icons'}!`);
+        } catch (error: any) {
+            console.error(error);
+            alert('❌ Error updating batch emoji: ' + error.message);
+        }
+    };
+
     const downloadTemplate = (quizType: 'multipleChoice' | 'unscramble' | 'trueFalse') => {
         let csvContent = '';
         let filename = '';
@@ -278,8 +315,13 @@ export default function AdminDashboard() {
                                 const correctIndex = shuffled.indexOf(correctAnswer.trim());
 
                                 exerciseData.mcQuestion = question.trim();
-                                exerciseData.mcOptions = shuffled.map((text: string) => ({ text }));
+                                // Auto-assign icons using batch emoji or auto-match
+                                exerciseData.mcOptions = shuffled.map((text: string) => ({
+                                    text,
+                                    icon: batchEmoji || findBestIcon(text)
+                                }));
                                 exerciseData.mcCorrectAnswerIndex = correctIndex;
+                                exerciseData.batchEmoji = batchEmoji || undefined;  // Store batch emoji
 
                                 // Optional explanation
                                 if (row.explanation) {
@@ -299,6 +341,7 @@ export default function AdminDashboard() {
                                 }
                                 exerciseData.unscramblePrompt = String(prompt).trim();
                                 exerciseData.unscrambleAnswer = String(answer).trim();
+                                exerciseData.batchEmoji = batchEmoji || undefined;  // Store batch emoji
 
                                 // Optional explanation
                                 if (row.explanation) {
@@ -315,6 +358,7 @@ export default function AdminDashboard() {
                                 exerciseData.tfAnswer = String(answer).toLowerCase() === 'true' ||
                                     String(answer).toLowerCase() === 't' ||
                                     answer === '1';
+                                exerciseData.batchEmoji = batchEmoji || undefined;  // Store batch emoji
 
                                 // Optional explanation
                                 if (row.explanation) {
@@ -326,7 +370,8 @@ export default function AdminDashboard() {
                             count++;
                         }
 
-                        alert(`✅ Imported ${count} ${quizType} exercises!`);
+                        alert(`✅ Imported ${count} ${quizType} exercises!${batchEmoji ? ` Using custom emoji: ${batchEmoji}` : ' Using auto-matched icons ✨'}`);
+                        setBatchEmoji('');  // Clear batch emoji after upload
                         loadExercises(selectedTopic);
                         e.target.value = '';
                     } catch (error: any) {
@@ -739,7 +784,38 @@ export default function AdminDashboard() {
                                     </div>
                                 </div>
 
-                                <div className="mb-4">
+                                <div className="mb-4 space-y-3">
+                                    {/* Batch Emoji Picker */}
+                                    <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                            <Smile className="w-4 h-4" />
+                                            Custom Emoji (Optional)
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="e.g., 🐶 🍎 📖 (leave empty for auto-match)"
+                                                value={batchEmoji}
+                                                onChange={(e) => setBatchEmoji(e.target.value)}
+                                                className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-center text-2xl"
+                                                maxLength={2}
+                                            />
+                                            {batchEmoji && (
+                                                <button
+                                                    onClick={() => setBatchEmoji('')}
+                                                    className="px-3 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300"
+                                                >
+                                                    Clear
+                                                </button>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-gray-600 mt-2">
+                                            {batchEmoji
+                                                ? `All quiz options will use ${batchEmoji}`
+                                                : '✨ Icons will auto-match based on quiz content'}
+                                        </p>
+                                    </div>
+
                                     <label className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl cursor-pointer hover:shadow-lg">
                                         <Upload className="w-5 h-5" />
                                         <span>Upload CSV (Auto-detect type)</span>
@@ -767,7 +843,7 @@ export default function AdminDashboard() {
                                         return Object.entries(batchGroups).map(([batchId, batchExercises]) => (
                                             <div key={batchId} className="border-2 border-indigo-200 rounded-xl p-3 bg-white">
                                                 <div className="flex items-center justify-between mb-3">
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2 flex-1">
                                                         <Package className="w-4 h-4 text-indigo-600" />
                                                         <span className="font-semibold text-sm text-indigo-700">
                                                             {batchId === 'unbatched' ? 'Individual Exercises' : `Upload Batch (${batchExercises.length} exercises)`}
@@ -775,15 +851,29 @@ export default function AdminDashboard() {
                                                         <span className="text-xs bg-indigo-100 px-2 py-1 rounded">
                                                             {batchExercises[0]?.quizType}
                                                         </span>
+                                                        {batchExercises[0]?.batchEmoji && (
+                                                            <span className="text-lg" title="Current batch emoji">
+                                                                {batchExercises[0].batchEmoji}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     {batchId !== 'unbatched' && (
-                                                        <button
-                                                            onClick={() => deleteBatch(batchId, batchExercises.length)}
-                                                            className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-xs font-semibold"
-                                                        >
-                                                            <Trash2 className="w-3 h-3" />
-                                                            Delete Batch
-                                                        </button>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => setEditingBatchEmoji({ batchId, emoji: batchExercises[0]?.batchEmoji || '' })}
+                                                                className="flex items-center gap-1 px-3 py-1.5 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 text-xs font-semibold"
+                                                            >
+                                                                <Smile className="w-3 h-3" />
+                                                                Edit Emoji
+                                                            </button>
+                                                            <button
+                                                                onClick={() => deleteBatch(batchId, batchExercises.length)}
+                                                                className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-xs font-semibold"
+                                                            >
+                                                                <Trash2 className="w-3 h-3" />
+                                                                Delete Batch
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </div>
                                                 <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -813,6 +903,54 @@ export default function AdminDashboard() {
                             <div className="text-center py-12">
                                 <p className="text-gray-500 mb-2">Please select a topic from the dropdown above</p>
                                 <p className="text-sm text-gray-400">Choose a topic to upload exercises and manage content</p>
+                            </div>
+                        )}
+
+                        {/* Edit Batch Emoji Modal */}
+                        {editingBatchEmoji && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setEditingBatchEmoji(null)}>
+                                <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+                                    <h3 className="text-xl font-bold mb-4 text-gray-900 flex items-center gap-2">
+                                        <Smile className="w-5 h-5" />
+                                        Edit Batch Emoji
+                                    </h3>
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Set a custom emoji for this batch or leave empty to auto-match icons.
+                                    </p>
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                            Batch Emoji
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g., 🐶 📖 🌟 (or leave empty)"
+                                            value={editingBatchEmoji.emoji}
+                                            onChange={(e) => setEditingBatchEmoji({ ...editingBatchEmoji, emoji: e.target.value })}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-center text-3xl"
+                                            maxLength={2}
+                                            autoFocus
+                                        />
+                                        <p className="text-xs text-gray-500 mt-2">
+                                            {editingBatchEmoji.emoji
+                                                ? `All quiz options will use ${editingBatchEmoji.emoji}`
+                                                : '✨ Icons will auto-match based on content'}
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setEditingBatchEmoji(null)}
+                                            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={() => updateBatchEmoji(editingBatchEmoji.batchId, editingBatchEmoji.emoji)}
+                                            className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-lg"
+                                        >
+                                            Save Changes
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
