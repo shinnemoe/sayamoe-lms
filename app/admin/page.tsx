@@ -598,7 +598,7 @@ export default function AdminDashboard() {
                             ) : (
                                 <div className="space-y-3">
                                     {unassignedStudents.map(student => (
-                                        <div key={student.uid} className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                        <div key={student.id} className="p-4 bg-gray-50 rounded-xl border border-gray-200">
                                             <div className="mb-3">
                                                 <h3 className="font-semibold text-gray-900">{student.name}</h3>
                                                 <p className="text-sm text-gray-600">{student.email}</p>

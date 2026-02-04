@@ -39,15 +39,20 @@ export default function StudentDashboard() {
     }, [router]);
 
     const loadTopics = async (userData: any) => {
+        console.log('loadTopics called with userData:', userData);
+
         // For guest users, show all topics
         if (userData.isGuest) {
+            console.log('Loading topics for guest user...');
             try {
                 const topicsSnapshot = await getDocs(collection(db, 'topics'));
+                console.log('Topics snapshot size:', topicsSnapshot.size);
                 const topicsData = topicsSnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
                 })) as Topic[];
 
+                console.log('Loaded topics for guest:', topicsData);
                 setTopics(topicsData);
 
                 // Load scores
@@ -123,7 +128,7 @@ export default function StudentDashboard() {
                     <p className="text-gray-600">Choose a topic to continue learning</p>
                 </div>
 
-                {!user?.classId ? (
+                {!user?.classId && !(user as any)?.isGuest ? (
                     <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
                         <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                         <h2 className="text-2xl font-bold mb-2 text-gray-900">Not Assigned to Class</h2>
