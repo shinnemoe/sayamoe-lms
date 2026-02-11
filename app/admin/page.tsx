@@ -5,7 +5,7 @@ import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where } 
 import { db } from '@/lib/firebase';
 import { Topic, Exercise, User } from '@/types';
 import Papa from 'papaparse';
-import { Download, Upload, Plus, Trash2, Users, BookOpen, GraduationCap, Package, Smile, GripVertical } from 'lucide-react';
+import { Download, Upload, Plus, Trash2, Users, BookOpen, GraduationCap, Package, Smile, GripVertical, Edit2 } from 'lucide-react';
 import { parseMultipleChoiceCSV, parseUnscrambleCSV, parseTrueFalseCSV } from '@/lib/csvParser';
 import { findBestIcon } from '@/lib/iconMapper';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
@@ -118,6 +118,7 @@ export default function AdminDashboard() {
     const [exercises, setExercises] = useState<Exercise[]>([]);
     const [batchEmoji, setBatchEmoji] = useState<string>('');
     const [editingBatchEmoji, setEditingBatchEmoji] = useState<{ batchId: string, emoji: string } | null>(null);
+    const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
 
     // Drag and drop sensors
     const sensors = useSensors(
@@ -415,6 +416,82 @@ export default function AdminDashboard() {
         link.href = URL.createObjectURL(blob);
         link.download = filename;
         link.click();
+    };
+
+    const downloadExercises = () => {
+        if (exercises.length === 0) {
+            alert('No exercises to download!');
+            return;
+        }
+
+        // Group by quiz type
+        const byType: { [key: string]: Exercise[] } = {};
+        exercises.forEach(ex => {
+            if (!byType[ex.quizType]) byType[ex.quizType] = [];
+            byType[ex.quizType].push(ex);
+        });
+
+        Object.entries(byType).forEach(([quizType, exs]) => {
+            let csvContent = '';
+            let filename = '';
+
+            if (quizType === 'multipleChoice') {
+                csvContent = 'question,answer,distractor1,distractor2,distractor3,explanation\n';
+                exs.forEach(ex => {
+                    const question = ex.mcQuestion || '';
+                    const correctAnswer = ex.mcOptions?.[ex.mcCorrectAnswerIndex || 0]?.text || '';
+                    const options = ex.mcOptions || [];
+                    const distractors = options.filter((_, i) => i !== ex.mcCorrectAnswerIndex).map(o => o.text);
+                    const explanation = ex.explanation || '';
+
+                    csvContent += `"${question}","${correctAnswer}","${distractors[0] || ''}","${distractors[1] || ''}","${distractors[2] || ''}","${explanation}"\n`;
+                });
+                filename = 'multiple_choice_exercises.csv';
+            } else if (quizType === 'unscramble') {
+                csvContent = 'question,prompt,answer,explanation\n';
+                exs.forEach(ex => {
+                    const question = ex.unscrambleQuestion || '';
+                    const prompt = ex.unscramblePrompt || '';
+                    const answer = ex.unscrambleAnswer || '';
+                    const explanation = ex.explanation || '';
+
+                    csvContent += `"${question}","${prompt}","${answer}","${explanation}"\n`;
+                });
+                filename = 'unscramble_exercises.csv';
+            } else if (quizType === 'trueFalse') {
+                csvContent = 'statement,answer,explanation\n';
+                exs.forEach(ex => {
+                    const statement = ex.tfStatement || '';
+                    const answer = ex.tfAnswer ? 'true' : 'false';
+                    const explanation = ex.explanation || '';
+
+                    csvContent += `"${statement}","${answer}","${explanation}"\n`;
+                });
+                filename = 'true_false_exercises.csv';
+            }
+
+            // Add UTF-8 BOM
+            const BOM = '\uFEFF';
+            const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        });
+
+        alert('✅ Downloaded exercises as CSV!');
+    };
+
+    const updateExercise = async (exerciseId: string, updates: any) => {
+        try {
+            await updateDoc(doc(db, 'exercises', exerciseId), updates);
+            loadExercises(selectedTopic);
+            setEditingExercise(null);
+            alert('✅ Exercise updated successfully!');
+        } catch (error: any) {
+            console.error(error);
+            alert('❌ Error updating exercise: ' + error.message);
+        }
     };
 
     const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -992,6 +1069,15 @@ export default function AdminDashboard() {
                                             True/False
                                         </button>
                                     </div>
+                                    {exercises.length > 0 && (
+                                        <button
+                                            onClick={downloadExercises}
+                                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:shadow-lg font-semibold text-sm"
+                                        >
+                                            <Download className="w-4 h-4" />
+                                            Download Current Exercises as CSV
+                                        </button>
+                                    )}
                                 </div>
 
                                 <div className="mb-4 space-y-3">
@@ -1094,13 +1180,22 @@ export default function AdminDashboard() {
                                                                     {ex.mcQuestion || ex.unscramblePrompt || ex.tfStatement}
                                                                 </p>
                                                             </div>
-                                                            <button
-                                                                onClick={() => deleteExercise(ex.id)}
-                                                                className="p-1 text-red-600 hover:bg-red-50 rounded ml-2"
-                                                                title="Delete single exercise"
-                                                            >
-                                                                <Trash2 className="w-3.5 h-3.5" />
-                                                            </button>
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    onClick={() => setEditingExercise(ex)}
+                                                                    className="p-1 text-indigo-600 hover:bg-indigo-50 rounded"
+                                                                    title="Edit exercise"
+                                                                >
+                                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => deleteExercise(ex.id)}
+                                                                    className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                                                    title="Delete single exercise"
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -1160,6 +1255,231 @@ export default function AdminDashboard() {
                                             Save Changes
                                         </button>
                                     </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Edit Exercise Modal */}
+                        {editingExercise && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setEditingExercise(null)}>
+                                <div className="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                                    <h3 className="text-xl font-bold mb-4 text-gray-900 flex items-center gap-2">
+                                        <Edit2 className="w-5 h-5" />
+                                        Edit Exercise
+                                    </h3>
+
+                                    <form onSubmit={(e) => {
+                                        e.preventDefault();
+                                        const formData = new FormData(e.currentTarget);
+                                        const updates: any = {};
+
+                                        if (editingExercise.quizType === 'multipleChoice') {
+                                            updates.mcQuestion = formData.get('question');
+                                            const option1 = formData.get('option1') as string;
+                                            const option2 = formData.get('option2') as string;
+                                            const option3 = formData.get('option3') as string;
+                                            const option4 = formData.get('option4') as string;
+                                            const correctIndex = parseInt(formData.get('correctIndex') as string);
+
+                                            const options = [option1, option2, option3, option4].map(text => ({
+                                                text,
+                                                icon: editingExercise.batchEmoji || findBestIcon(text)
+                                            }));
+
+                                            updates.mcOptions = options;
+                                            updates.mcCorrectAnswerIndex = correctIndex;
+                                            updates.explanation = formData.get('explanation') || '';
+                                        } else if (editingExercise.quizType === 'unscramble') {
+                                            updates.unscrambleQuestion = formData.get('question') || '';
+                                            updates.unscramblePrompt = formData.get('prompt');
+                                            updates.unscrambleAnswer = formData.get('answer');
+                                            updates.explanation = formData.get('explanation') || '';
+                                        } else if (editingExercise.quizType === 'trueFalse') {
+                                            updates.tfStatement = formData.get('statement');
+                                            updates.tfAnswer = formData.get('answer') === 'true';
+                                            updates.explanation = formData.get('explanation') || '';
+                                        }
+
+                                        updateExercise(editingExercise.id, updates);
+                                    }}>
+                                        <div className="space-y-4 mb-6">
+                                            {/* Multiple Choice Fields */}
+                                            {editingExercise.quizType === 'multipleChoice' && (
+                                                <>
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Question</label>
+                                                        <input
+                                                            type="text"
+                                                            name="question"
+                                                            defaultValue={editingExercise.mcQuestion || ''}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Option 1</label>
+                                                        <input
+                                                            type="text"
+                                                            name="option1"
+                                                            defaultValue={editingExercise.mcOptions?.[0]?.text || ''}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Option 2</label>
+                                                        <input
+                                                            type="text"
+                                                            name="option2"
+                                                            defaultValue={editingExercise.mcOptions?.[1]?.text || ''}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Option 3</label>
+                                                        <input
+                                                            type="text"
+                                                            name="option3"
+                                                            defaultValue={editingExercise.mcOptions?.[2]?.text || ''}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Option 4</label>
+                                                        <input
+                                                            type="text"
+                                                            name="option4"
+                                                            defaultValue={editingExercise.mcOptions?.[3]?.text || ''}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Correct Answer (1-4)</label>
+                                                        <select
+                                                            name="correctIndex"
+                                                            defaultValue={(editingExercise.mcCorrectAnswerIndex || 0).toString()}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                                                            required
+                                                        >
+                                                            <option value="0">Option 1</option>
+                                                            <option value="1">Option 2</option>
+                                                            <option value="2">Option 3</option>
+                                                            <option value="3">Option 4</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Explanation (Optional)</label>
+                                                        <textarea
+                                                            name="explanation"
+                                                            defaultValue={editingExercise.explanation || ''}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                                                            rows={2}
+                                                        />
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            {/* Unscramble Fields */}
+                                            {editingExercise.quizType === 'unscramble' && (
+                                                <>
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Question (Optional)</label>
+                                                        <input
+                                                            type="text"
+                                                            name="question"
+                                                            defaultValue={editingExercise.unscrambleQuestion || ''}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Prompt</label>
+                                                        <input
+                                                            type="text"
+                                                            name="prompt"
+                                                            defaultValue={editingExercise.unscramblePrompt || ''}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Answer Sentence</label>
+                                                        <input
+                                                            type="text"
+                                                            name="answer"
+                                                            defaultValue={editingExercise.unscrambleAnswer || ''}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Explanation (Optional)</label>
+                                                        <textarea
+                                                            name="explanation"
+                                                            defaultValue={editingExercise.explanation || ''}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                                                            rows={2}
+                                                        />
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            {/* True/False Fields */}
+                                            {editingExercise.quizType === 'trueFalse' && (
+                                                <>
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Statement</label>
+                                                        <input
+                                                            type="text"
+                                                            name="statement"
+                                                            defaultValue={editingExercise.tfStatement || ''}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Answer</label>
+                                                        <select
+                                                            name="answer"
+                                                            defaultValue={editingExercise.tfAnswer ? 'true' : 'false'}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                                                            required
+                                                        >
+                                                            <option value="true">True</option>
+                                                            <option value="false">False</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Explanation (Optional)</label>
+                                                        <textarea
+                                                            name="explanation"
+                                                            defaultValue={editingExercise.explanation || ''}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                                                            rows={2}
+                                                        />
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+
+                                        <div className="flex gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditingExercise(null)}
+                                                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="flex-1 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg"
+                                            >
+                                                Save Changes
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         )}
