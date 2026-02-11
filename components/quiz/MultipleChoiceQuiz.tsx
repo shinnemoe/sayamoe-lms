@@ -63,11 +63,11 @@ export default function MultipleChoiceQuiz({ question, options, correctAnswer, e
                             key={index}
                             onClick={() => handleSelect(option.text)}
                             disabled={showResult}
-                            className={`p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100 ${cardClass}`}
+                            className={`p-4 rounded-2xl transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100 ${cardClass}`}
                         >
                             <div className="flex flex-col items-center gap-3">
-                                <div className="text-5xl">{option.icon}</div>
-                                <div className={`text-lg font-semibold text-center ${showResult && (isCorrectOption || (isSelected && !isCorrect)) ? 'text-white' : 'text-gray-800'
+                                <div className="text-4xl">{option.icon}</div>
+                                <div className={`text-base font-semibold text-center ${showResult && (isCorrectOption || (isSelected && !isCorrect)) ? 'text-white' : 'text-gray-800'
                                     }`}>
                                     {option.text}
                                 </div>
@@ -81,7 +81,7 @@ export default function MultipleChoiceQuiz({ question, options, correctAnswer, e
             </div>
 
             {showResult && (
-                <div className={`mt-6 p-6 rounded-2xl ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                <div className={`mt-6 p-4 rounded-2xl ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     <div className="text-center font-bold text-2xl mb-2">
                         {isCorrect ? '✅ Correct!' : `❌ Wrong! Correct answer: ${correctAnswer}`}
                     </div>

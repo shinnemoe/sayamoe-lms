@@ -2,10 +2,16 @@
 
 import { useState, useEffect } from 'react';
 
+interface WordInstance {
+    text: string;
+    instanceId: number;
+    displayIndex?: number; // For showing to the user (e.g., Ko₁, Ko₂)
+}
+
 interface Props {
     question: string;
     prompt?: string;  // Optional instruction like "Arrange the words"
-    words: string[];
+    words: string[] | WordInstance[];
     correctAnswer: string;
     explanation?: string;
     onAnswer: (answer: string) => void;
@@ -14,31 +20,111 @@ interface Props {
 }
 
 export default function UnscrambleQuiz({ question, prompt, words, correctAnswer, explanation, onAnswer, showResult, isCorrect }: Props) {
-    const [selectedWords, setSelectedWords] = useState<string[]>([]);
-    const [availableWords, setAvailableWords] = useState<string[]>(words);
+    const [selectedWords, setSelectedWords] = useState<WordInstance[]>([]);
+    const [availableWords, setAvailableWords] = useState<WordInstance[]>([]);
+
+    // Process words and add instance IDs on component mount or when words change
+    useEffect(() => {
+        // Convert string array to WordInstance array if needed
+        const wordInstances: WordInstance[] = [];
+        const wordCounts: { [key: string]: number } = {};
+
+        const wordArray = words.map(w => typeof w === 'string' ? w : w.text);
+
+        wordArray.forEach((word, index) => {
+            if (!wordCounts[word]) {
+                wordCounts[word] = 0;
+            }
+            wordCounts[word]++;
+        });
+
+        // Create instances with display indices for duplicates
+        const instanceCounts: { [key: string]: number } = {};
+        wordArray.forEach((word, index) => {
+            if (!instanceCounts[word]) {
+                instanceCounts[word] = 0;
+            }
+            instanceCounts[word]++;
+
+            const hasDuplicates = wordCounts[word] > 1;
+            wordInstances.push({
+                text: word,
+                instanceId: index,
+                displayIndex: hasDuplicates ? instanceCounts[word] : undefined
+            });
+        });
+
+        setAvailableWords(wordInstances);
+        setSelectedWords([]);
+    }, [words]);
 
     // Reset state when question changes (when showResult becomes false)
     useEffect(() => {
         if (!showResult) {
+            // Re-process words
+            const wordInstances: WordInstance[] = [];
+            const wordCounts: { [key: string]: number } = {};
+
+            const wordArray = words.map(w => typeof w === 'string' ? w : w.text);
+
+            wordArray.forEach((word, index) => {
+                if (!wordCounts[word]) {
+                    wordCounts[word] = 0;
+                }
+                wordCounts[word]++;
+            });
+
+            const instanceCounts: { [key: string]: number } = {};
+            wordArray.forEach((word, index) => {
+                if (!instanceCounts[word]) {
+                    instanceCounts[word] = 0;
+                }
+                instanceCounts[word]++;
+
+                const hasDuplicates = wordCounts[word] > 1;
+                wordInstances.push({
+                    text: word,
+                    instanceId: index,
+                    displayIndex: hasDuplicates ? instanceCounts[word] : undefined
+                });
+            });
+
+            setAvailableWords(wordInstances);
             setSelectedWords([]);
-            setAvailableWords(words);
         }
     }, [showResult, words]);
 
-    const handleWordClick = (word: string, fromAvailable: boolean) => {
+    const handleWordClick = (word: WordInstance, fromAvailable: boolean) => {
         if (showResult) return;
 
         if (fromAvailable) {
             setSelectedWords([...selectedWords, word]);
-            setAvailableWords(availableWords.filter(w => w !== word));
+            setAvailableWords(availableWords.filter(w => w.instanceId !== word.instanceId));
         } else {
             setAvailableWords([...availableWords, word]);
-            setSelectedWords(selectedWords.filter(w => w !== word));
+            setSelectedWords(selectedWords.filter(w => w.instanceId !== word.instanceId));
         }
     };
 
     const handleSubmit = () => {
-        onAnswer(selectedWords.join(' '));
+        // Strip instance IDs and build answer
+        const answer = selectedWords.map(w => w.text).join(' ');
+        onAnswer(answer);
+    };
+
+    const subscriptNumbers = ['₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉'];
+
+    const renderWord = (word: WordInstance) => {
+        return (
+            <>
+                {word.text}
+                {word.displayIndex && (
+                    <span className="text-xs opacity-60 ml-0.5">
+                        {subscriptNumbers[word.displayIndex - 1] || word.displayIndex}
+                    </span>
+                )}
+            </>
+        );
     };
 
     return (
@@ -52,14 +138,14 @@ export default function UnscrambleQuiz({ question, prompt, words, correctAnswer,
                     {selectedWords.length === 0 ? (
                         <p className="text-gray-400 text-center w-full">Tap words below to build your answer</p>
                     ) : (
-                        selectedWords.map((word, index) => (
+                        selectedWords.map((word) => (
                             <button
-                                key={index}
+                                key={word.instanceId}
                                 onClick={() => handleWordClick(word, false)}
                                 className="px-4 py-2 bg-white rounded-lg shadow hover:shadow-lg transition-all font-medium"
                                 disabled={showResult}
                             >
-                                {word}
+                                {renderWord(word)}
                             </button>
                         ))
                     )}
@@ -68,14 +154,14 @@ export default function UnscrambleQuiz({ question, prompt, words, correctAnswer,
 
             {/* Available Words */}
             <div className="flex flex-wrap gap-2 mb-6">
-                {availableWords.map((word, index) => (
+                {availableWords.map((word) => (
                     <button
-                        key={index}
+                        key={word.instanceId}
                         onClick={() => handleWordClick(word, true)}
                         className="px-4 py-2 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-lg hover:from-indigo-200 hover:to-purple-200 transition-all font-medium"
                         disabled={showResult}
                     >
-                        {word}
+                        {renderWord(word)}
                     </button>
                 ))}
             </div>
