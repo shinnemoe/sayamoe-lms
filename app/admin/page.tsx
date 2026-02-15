@@ -8,6 +8,7 @@ import Papa from 'papaparse';
 import { Download, Upload, Plus, Trash2, Users, BookOpen, GraduationCap, Package, Smile, GripVertical, Edit2 } from 'lucide-react';
 import { parseMultipleChoiceCSV, parseUnscrambleCSV, parseTrueFalseCSV } from '@/lib/csvParser';
 import { findBestIcon } from '@/lib/iconMapper';
+import { combineDuplicateNames, cleanExerciseText } from '@/lib/nameUtils';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -332,6 +333,33 @@ export default function AdminDashboard() {
         }
     };
 
+    const fixDuplicateNamesInAllExercises = async () => {
+        if (!confirm('This will update ALL exercises in this topic to combine duplicate names (e.g., "Su Su" → "SuSu"). Continue?')) {
+            return;
+        }
+
+        try {
+            const snapshot = await getDocs(collection(db, 'exercises'));
+            const allExercises = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Exercise[];
+            const exercisesToUpdate = allExercises.filter(ex => ex.topicId === selectedTopic);
+
+            let updatedCount = 0;
+
+            for (const exercise of exercisesToUpdate) {
+                const cleaned = cleanExerciseText(exercise);
+                await updateDoc(doc(db, 'exercises', exercise.id), cleaned);
+                updatedCount++;
+            }
+
+            loadExercises(selectedTopic);
+            alert(`✅ Updated ${updatedCount} exercises! Duplicate names have been combined.`);
+        } catch (error: any) {
+            console.error(error);
+            alert('❌ Error fixing duplicate names: ' + error.message);
+        }
+    };
+
+
     const handlePasswordSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (passwordInput === '1001') {
@@ -628,6 +656,9 @@ export default function AdminDashboard() {
                                     exerciseData.explanation = String(row.explanation).trim();
                                 }
                             }
+
+                            // Apply duplicate name combining transformation before saving
+                            exerciseData = cleanExerciseText(exerciseData);
 
                             await addDoc(collection(db, 'exercises'), exerciseData);
                             count++;
@@ -1076,6 +1107,15 @@ export default function AdminDashboard() {
                                         >
                                             <Download className="w-4 h-4" />
                                             Download Current Exercises as CSV
+                                        </button>
+                                    )}
+                                    {exercises.length > 0 && (
+                                        <button
+                                            onClick={fixDuplicateNamesInAllExercises}
+                                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-lg font-semibold text-sm"
+                                        >
+                                            <Edit2 className="w-4 h-4" />
+                                            Fix Duplicate Names (e.g., "Su Su" → "SuSu")
                                         </button>
                                     )}
                                 </div>
