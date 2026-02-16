@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { speakText } from '@/lib/audioUtils';
+import { Volume2 } from 'lucide-react';
 
 interface WordInstance {
     text: string;
@@ -179,6 +181,16 @@ export default function UnscrambleQuiz({ question, prompt, words, correctAnswer,
                 <div className={`p-4 rounded-xl ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     <div className="text-center font-bold text-lg mb-2">
                         {isCorrect ? '✅ Correct!' : `❌ Wrong! Correct answer: "${correctAnswer}"`}
+                    </div>
+                    <div className="flex justify-center mt-3">
+                        <button
+                            onClick={() => speakText(correctAnswer)}
+                            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 shadow-md transition-all hover:shadow-lg"
+                            title="Listen to correct answer"
+                        >
+                            <Volume2 className="w-5 h-5 text-indigo-600" />
+                            <span className="text-sm font-semibold text-gray-700">Listen</span>
+                        </button>
                     </div>
                     {!isCorrect && explanation && (
                         <div className="text-sm text-red-600 mt-2 pt-2 border-t border-red-300">
