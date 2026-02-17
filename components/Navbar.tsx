@@ -41,7 +41,7 @@ export default function Navbar({ userRole, userName }: NavbarProps) {
                             className="flex items-center space-x-2 text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
                         >
                             <BookOpen className="w-6 h-6 text-indigo-600" />
-                            <span>Sayamoe</span>
+                            <span>Sayamoe Twante</span>
                         </button>
                     </div>
 
@@ -55,8 +55,8 @@ export default function Navbar({ userRole, userName }: NavbarProps) {
                                     key={link.name}
                                     onClick={() => router.push(link.href)}
                                     className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-all ${isActive
-                                            ? 'bg-indigo-100 text-indigo-700 font-medium'
-                                            : 'text-gray-700 hover:bg-gray-100'
+                                        ? 'bg-indigo-100 text-indigo-700 font-medium'
+                                        : 'text-gray-700 hover:bg-gray-100'
                                         }`}
                                 >
                                     <Icon className="w-4 h-4" />
@@ -108,8 +108,8 @@ export default function Navbar({ userRole, userName }: NavbarProps) {
                                         setMobileMenuOpen(false);
                                     }}
                                     className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg transition-all ${isActive
-                                            ? 'bg-indigo-100 text-indigo-700 font-medium'
-                                            : 'text-gray-700 hover:bg-gray-100'
+                                        ? 'bg-indigo-100 text-indigo-700 font-medium'
+                                        : 'text-gray-700 hover:bg-gray-100'
                                         }`}
                                 >
                                     <Icon className="w-4 h-4" />
