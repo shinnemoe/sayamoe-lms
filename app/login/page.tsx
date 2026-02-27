@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
@@ -54,16 +54,12 @@ function LoginForm() {
         setLoading(true);
         setError('');
         try {
-            // Generate a random guest email
-            const guestEmail = `guest${Math.random().toString(36).substring(2, 9)}@sayamoe.guest`;
-            const guestPassword = 'guest123';
+            // Use Firebase Anonymous Authentication for guest access
+            const userCredential = await signInAnonymously(auth);
 
-            // Create guest account
-            const userCredential = await createUserWithEmailAndPassword(auth, guestEmail, guestPassword);
-
-            // Store guest user data
+            // Store guest user data in Firestore
             await setDoc(doc(db, 'users', userCredential.user.uid), {
-                email: guestEmail,
+                email: '',
                 role: 'student',
                 name: 'Guest Student',
                 isGuest: true,
