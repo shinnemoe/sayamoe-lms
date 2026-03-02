@@ -135,9 +135,27 @@ export default function UnscrambleQuiz({ question, prompt, words, correctAnswer,
             {prompt && <p className="text-gray-600 mb-6 text-lg">{prompt}</p>}
 
             {/* Selected Words Area */}
-            <div className="min-h-[100px] bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 mb-6 border-2 border-dashed border-indigo-300">
+            <div className={`min-h-[100px] rounded-xl p-4 mb-6 border-2 border-dashed transition-colors ${showResult
+                    ? isCorrect
+                        ? 'bg-green-50 border-green-400'
+                        : 'bg-red-50 border-red-400'
+                    : 'bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-300'
+                }`}>
                 <div className="flex flex-wrap gap-2">
-                    {selectedWords.length === 0 ? (
+                    {showResult ? (
+                        // Show the correct answer words in order
+                        correctAnswer.split(' ').map((word, index) => (
+                            <span
+                                key={index}
+                                className={`px-4 py-2 rounded-lg font-medium shadow-sm ${isCorrect
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-red-100 text-red-800'
+                                    }`}
+                            >
+                                {word}
+                            </span>
+                        ))
+                    ) : selectedWords.length === 0 ? (
                         <p className="text-gray-400 text-center w-full">Tap words below to build your answer</p>
                     ) : (
                         selectedWords.map((word) => (
