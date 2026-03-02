@@ -78,7 +78,7 @@ export default function StudentDashboard() {
 
         // For regular students, require class assignment
         if (!userData.classId) {
-            setLoading(false);
+            router.push('/student/select-class');
             return;
         }
 
@@ -133,14 +133,7 @@ export default function StudentDashboard() {
                     <p className="text-gray-600">Choose a topic to continue learning</p>
                 </div>
 
-                {!user?.classId && !(user as any)?.isGuest ? (
-                    <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-                        <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                        <h2 className="text-2xl font-bold mb-2 text-gray-900">Not Assigned to Class</h2>
-                        <p className="text-gray-600">Your teacher needs to add you to a class before you can see topics.</p>
-                        <p className="text-sm text-gray-500 mt-4">Contact your teacher or wait for them to assign you.</p>
-                    </div>
-                ) : topics.length === 0 ? (
+                {topics.length === 0 ? (
                     <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
                         <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                         <h2 className="text-2xl font-bold mb-2 text-gray-900">No Topics Available</h2>
