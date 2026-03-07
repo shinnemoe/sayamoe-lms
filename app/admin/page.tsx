@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
+import { db, auth } from '@/lib/firebase';
 import { Topic, Exercise, User } from '@/types';
 import Papa from 'papaparse';
 import { Download, Upload, Plus, Trash2, Users, BookOpen, GraduationCap, Package, Smile, GripVertical, Edit2 } from 'lucide-react';
@@ -91,8 +92,10 @@ function SortableTopicItem({ topic, classes, onEdit, onDelete }: {
 
 export default function AdminDashboard() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [emailInput, setEmailInput] = useState('');
     const [passwordInput, setPasswordInput] = useState('');
     const [passwordError, setPasswordError] = useState('');
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [activeTab, setActiveTab] = useState<'classes' | 'topics' | 'exercises'>('classes');
 
     // Classes
@@ -120,6 +123,11 @@ export default function AdminDashboard() {
     const [batchEmoji, setBatchEmoji] = useState<string>('');
     const [editingBatchEmoji, setEditingBatchEmoji] = useState<{ batchId: string, emoji: string } | null>(null);
     const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
+
+    // Search
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<(Exercise & { topicName: string })[] | null>(null);
+    const [isSearching, setIsSearching] = useState(false);
 
     // Drag and drop sensors
     const sensors = useSensors(
@@ -152,11 +160,15 @@ export default function AdminDashboard() {
 
 
     useEffect(() => {
-        // Check if already authenticated in session
-        const auth = sessionStorage.getItem('adminAuth');
-        if (auth === 'true') {
-            setIsAuthenticated(true);
-        }
+        // Listen for Firebase Auth state — only grant access if a real user is signed in
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setIsAuthenticated(true);
+            } else {
+                setIsAuthenticated(false);
+            }
+        });
+        return () => unsubscribe();
     }, []);
 
     useEffect(() => {
@@ -200,9 +212,53 @@ export default function AdminDashboard() {
     };
 
     const loadExercises = async (topicId: string) => {
-        const snapshot = await getDocs(collection(db, 'exercises'));
-        const allExercises = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Exercise[];
-        setExercises(allExercises.filter(ex => ex.topicId === topicId));
+        try {
+            const exercisesQuery = query(
+                collection(db, 'exercises'),
+                where('topicId', '==', topicId)
+            );
+            const snapshot = await getDocs(exercisesQuery);
+            const exercisesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Exercise[];
+            setExercises(exercisesData);
+        } catch (error) {
+            console.error('Error loading exercises:', error);
+            setExercises([]);
+        }
+    };
+
+    const searchAllExercises = async (query: string) => {
+        if (!query.trim()) {
+            setSearchResults(null);
+            return;
+        }
+        setIsSearching(true);
+        try {
+            const snapshot = await getDocs(collection(db, 'exercises'));
+            const allExercises = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Exercise[];
+            const q = query.toLowerCase();
+            const matched = allExercises.filter(ex => {
+                const text = [
+                    ex.unscrambleAnswer,
+                    ex.unscrambleQuestion,
+                    ex.unscramblePrompt,
+                    ex.mcQuestion,
+                    ex.tfStatement,
+                    ex.explanation,
+                    ...(ex.mcOptions?.map((o: any) => o.text) || [])
+                ].filter(Boolean).join(' ').toLowerCase();
+                return text.includes(q);
+            });
+            // Attach topic name to each result
+            const withTopics = matched.map(ex => ({
+                ...ex,
+                topicName: topics.find(t => t.id === ex.topicId)?.name || 'Unknown Topic'
+            }));
+            setSearchResults(withTopics);
+        } catch (error) {
+            console.error('Search error:', error);
+        } finally {
+            setIsSearching(false);
+        }
     };
 
     const createClass = async () => {
@@ -360,14 +416,21 @@ export default function AdminDashboard() {
     };
 
 
-    const handlePasswordSubmit = (e: React.FormEvent) => {
+    const handlePasswordSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (passwordInput === '1001') {
-            setIsAuthenticated(true);
-            sessionStorage.setItem('adminAuth', 'true');
-            setPasswordError('');
-        } else {
-            setPasswordError('Incorrect password');
+        if (!emailInput || !passwordInput) {
+            setPasswordError('Please enter email and password');
+            return;
+        }
+        setIsLoggingIn(true);
+        setPasswordError('');
+        try {
+            await signInWithEmailAndPassword(auth, emailInput, passwordInput);
+            // onAuthStateChanged will automatically set isAuthenticated = true
+        } catch (error: any) {
+            setPasswordError('Login failed: ' + (error.message || 'Invalid credentials'));
+        } finally {
+            setIsLoggingIn(false);
         }
     };
 
@@ -381,10 +444,22 @@ export default function AdminDashboard() {
                             <GraduationCap className="w-8 h-8 text-white" />
                         </div>
                         <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Access</h1>
-                        <p className="text-gray-600">Enter password to continue</p>
+                        <p className="text-gray-600">Sign in with your admin account</p>
                     </div>
                     <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                        <div>
+                        <div className="space-y-3">
+                            <input
+                                type="email"
+                                value={emailInput}
+                                onChange={(e) => {
+                                    setEmailInput(e.target.value);
+                                    setPasswordError('');
+                                }}
+                                placeholder="Admin email"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-lg"
+                                autoFocus
+                                autoComplete="email"
+                            />
                             <input
                                 type="password"
                                 value={passwordInput}
@@ -392,19 +467,20 @@ export default function AdminDashboard() {
                                     setPasswordInput(e.target.value);
                                     setPasswordError('');
                                 }}
-                                placeholder="Enter password"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-center text-lg"
-                                autoFocus
+                                placeholder="Password"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-lg"
+                                autoComplete="current-password"
                             />
                             {passwordError && (
-                                <p className="text-red-600 text-sm mt-2 text-center">{passwordError}</p>
+                                <p className="text-red-600 text-sm mt-1 text-center">{passwordError}</p>
                             )}
                         </div>
                         <button
                             type="submit"
-                            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl hover:shadow-lg font-semibold"
+                            disabled={isLoggingIn}
+                            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl hover:shadow-lg font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                            Login
+                            {isLoggingIn ? 'Signing in...' : 'Login'}
                         </button>
                     </form>
                 </div>
@@ -1045,6 +1121,74 @@ export default function AdminDashboard() {
                     <div className="bg-white rounded-2xl shadow-lg p-6">
                         <h2 className="text-2xl font-bold mb-4 text-gray-900">📝 Exercises</h2>
 
+                        {/* Global Search */}
+                        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                🔍 Search exercises across all topics:
+                            </label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    placeholder='e.g. "we will sit here"'
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && searchAllExercises(searchQuery)}
+                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-400"
+                                />
+                                <button
+                                    onClick={() => searchAllExercises(searchQuery)}
+                                    disabled={isSearching}
+                                    className="px-5 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold rounded-xl disabled:opacity-50"
+                                >
+                                    {isSearching ? '...' : 'Search'}
+                                </button>
+                                {searchResults !== null && (
+                                    <button
+                                        onClick={() => { setSearchResults(null); setSearchQuery(''); }}
+                                        className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl"
+                                    >
+                                        Clear
+                                    </button>
+                                )}
+                            </div>
+                            {/* Search Results */}
+                            {searchResults !== null && (
+                                <div className="mt-3">
+                                    <p className="text-sm text-gray-600 mb-2">
+                                        {searchResults.length === 0
+                                            ? 'No exercises found.'
+                                            : `Found ${searchResults.length} exercise${searchResults.length !== 1 ? 's' : ''}:`}
+                                    </p>
+                                    <div className="space-y-2 max-h-72 overflow-y-auto">
+                                        {searchResults.map(ex => (
+                                            <div key={ex.id} className="flex items-start justify-between p-3 bg-white border border-yellow-200 rounded-lg">
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-gray-800 truncate">
+                                                        {ex.quizType === 'unscramble'
+                                                            ? ex.unscrambleAnswer
+                                                            : ex.quizType === 'multipleChoice'
+                                                                ? ex.mcQuestion
+                                                                : ex.tfStatement}
+                                                    </p>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <span className="text-xs text-indigo-600 font-semibold">{ex.topicName}</span>
+                                                        <span className="text-xs bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{ex.quizType}</span>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => setEditingExercise(ex)}
+                                                    className="ml-3 p-1.5 text-indigo-600 hover:bg-indigo-50 rounded flex-shrink-0"
+                                                    title="Edit exercise"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Topic Selector */}
                         <div className="mb-6 p-4 bg-gray-50 rounded-xl">
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -1216,9 +1360,16 @@ export default function AdminDashboard() {
                                                     {batchExercises.map(ex => (
                                                         <div key={ex.id} className="flex items-start justify-between p-2 bg-gray-50 rounded-lg">
                                                             <div className="flex-1">
-                                                                <p className="text-sm">
-                                                                    {ex.mcQuestion || ex.unscramblePrompt || ex.tfStatement}
+                                                                <p className="text-sm font-medium text-gray-800">
+                                                                    {ex.quizType === 'unscramble'
+                                                                        ? ex.unscrambleAnswer
+                                                                        : ex.quizType === 'multipleChoice'
+                                                                            ? ex.mcQuestion
+                                                                            : ex.tfStatement}
                                                                 </p>
+                                                                {ex.quizType === 'unscramble' && ex.unscrambleQuestion && (
+                                                                    <p className="text-xs text-gray-500 mt-0.5">{ex.unscrambleQuestion}</p>
+                                                                )}
                                                             </div>
                                                             <div className="flex gap-1">
                                                                 <button

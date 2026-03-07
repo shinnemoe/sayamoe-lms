@@ -29,13 +29,28 @@ export default function QuizPage() {
     const [isCorrect, setIsCorrect] = useState(false);
     const [currentUserAnswer, setCurrentUserAnswer] = useState<string>('');
     const [loading, setLoading] = useState(true);
+    const [topicName, setTopicName] = useState<string>('');
 
     useEffect(() => {
         loadExercises();
     }, [topicId, quizType]);
 
+    const quizTypeLabel: Record<string, string> = {
+        multipleChoice: 'Multiple Choice',
+        unscramble: 'Unscramble',
+        trueFalse: 'True or False',
+    };
+
     const loadExercises = async () => {
         try {
+            // Fetch topic name
+            const topicDoc = await getDoc(doc(db, 'topics', topicId));
+            if (topicDoc.exists()) {
+                const data = topicDoc.data();
+                const emoji = data.emoji ? `${data.emoji} ` : '';
+                setTopicName(`${emoji}${data.name}`);
+            }
+
             const exercisesQuery = query(
                 collection(db, 'exercises'),
                 where('topicId', '==', topicId),
@@ -172,6 +187,16 @@ export default function QuizPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-6">
             <div className="max-w-2xl mx-auto">
+                {/* Quiz Title */}
+                {topicName && (
+                    <div className="mb-4 text-center">
+                        <h1 className="text-xl font-bold text-gray-800">{topicName}</h1>
+                        <span className="inline-block mt-1 px-3 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                            {quizTypeLabel[quizType] ?? quizType}
+                        </span>
+                    </div>
+                )}
+
                 {/* Progress Bar */}
                 <div className="mb-6">
                     <div className="flex justify-between text-sm text-gray-600 mb-2">
