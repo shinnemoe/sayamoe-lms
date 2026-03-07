@@ -160,9 +160,9 @@ export default function AdminDashboard() {
 
 
     useEffect(() => {
-        // Listen for Firebase Auth state — only grant access if a real user is signed in
+        // Listen for Firebase Auth state — only grant access if signed in as admin
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
+            if (user && user.email === 'hello@abcmyanmar.com') {
                 setIsAuthenticated(true);
             } else {
                 setIsAuthenticated(false);
@@ -303,7 +303,7 @@ export default function AdminDashboard() {
         await addDoc(collection(db, 'topics'), {
             name: newTopicName,
             description: newTopicDesc,
-            emoji: newTopicEmoji || undefined,
+            emoji: newTopicEmoji || null,
             teacherId: 'admin',
             classIds: topicClassIds,
             order,
