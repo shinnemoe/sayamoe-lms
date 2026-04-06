@@ -72,13 +72,15 @@ export default function StudentDashboard() {
 
     const loadClasses = async (uid: string) => {
         try {
+            // PHASE 1: Load classes fast — show UI immediately
             const snapshot = await getDocs(collection(db, 'classes'));
             const classesData = snapshot.docs
                 .map(d => ({ id: d.id, ...d.data() } as Class))
                 .sort((a, b) => a.name.localeCompare(b.name));
             setClasses(classesData);
+            setLoading(false); // Show classes now — don't wait for mastery
 
-            // Load teacher names
+            // Load teacher names (non-blocking)
             const names: Record<string, string> = {};
             const teacherIds = [...new Set(classesData.map(c => c.teacherId).filter(Boolean))];
             await Promise.all(teacherIds.map(async (tid) => {
@@ -87,43 +89,46 @@ export default function StudentDashboard() {
             }));
             setTeacherNames(names);
 
-            // Compute mastery per class
-            const masteriesData: Record<string, MasteryInfo> = {};
-            await Promise.all(classesData.map(async (cls) => {
-                try {
-                    const topicsSnap = await getDocs(
-                        query(collection(db, 'topics'), where('classIds', 'array-contains', cls.id))
-                    );
-                    const topics = topicsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Topic));
-
-                    let earned = 0;
-                    let anyAttempted = false;
-                    const total = topics.length * 3;
-
-                    await Promise.all(topics.map(async (topic) => {
-                        await Promise.all(QUIZ_TYPES.map(async (qt) => {
-                            const scoreDoc = await getDoc(doc(db, 'scores', `${uid}_${topic.id}_${qt}`));
-                            if (scoreDoc.exists()) {
-                                anyAttempted = true;
-                                const s = scoreDoc.data() as Score;
-                                const pct = ((s.bestScore ?? s.score) / s.maxScore) * 100;
-                                if (pct >= 100) earned += 3;
-                                else if (pct >= 50) earned += 2;
-                            }
-                        }));
-                    }));
-
-                    masteriesData[cls.id] = getMastery(earned, total, anyAttempted);
-                } catch {
-                    masteriesData[cls.id] = getMastery(0, 0, false);
-                }
-            }));
-            setMasteries(masteriesData);
+            // PHASE 2: Compute mastery in background (won't block the page)
+            loadMasteries(uid, classesData);
         } catch (error) {
             console.error('Error loading classes:', error);
-        } finally {
             setLoading(false);
         }
+    };
+
+    const loadMasteries = async (uid: string, classesData: Class[]) => {
+        const masteriesData: Record<string, MasteryInfo> = {};
+        await Promise.all(classesData.map(async (cls) => {
+            try {
+                const topicsSnap = await getDocs(
+                    query(collection(db, 'topics'), where('classIds', 'array-contains', cls.id))
+                );
+                const topics = topicsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Topic));
+
+                let earned = 0;
+                let anyAttempted = false;
+                const total = topics.length * 3;
+
+                await Promise.all(topics.map(async (topic) => {
+                    await Promise.all(QUIZ_TYPES.map(async (qt) => {
+                        const scoreDoc = await getDoc(doc(db, 'scores', `${uid}_${topic.id}_${qt}`));
+                        if (scoreDoc.exists()) {
+                            anyAttempted = true;
+                            const s = scoreDoc.data() as Score;
+                            const pct = ((s.bestScore ?? s.score) / s.maxScore) * 100;
+                            if (pct >= 100) earned += 3;
+                            else if (pct >= 50) earned += 2;
+                        }
+                    }));
+                }));
+
+                masteriesData[cls.id] = getMastery(earned, total, anyAttempted);
+            } catch {
+                masteriesData[cls.id] = getMastery(0, 0, false);
+            }
+        }));
+        setMasteries(masteriesData); // Update mastery badges once ready
     };
 
     if (loading) {
