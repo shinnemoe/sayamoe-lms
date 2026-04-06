@@ -5,8 +5,16 @@ import { useRouter, useParams } from 'next/navigation';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { QuizType, Exercise, Topic, Score } from '@/types';
-import { ArrowLeft, CheckCircle2, Circle, FileText, List, CheckSquare } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, FileText, List, CheckSquare } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+
+function getStars(score: Score | undefined): string {
+    if (!score) return '';
+    const pct = ((score.bestScore ?? score.score) / score.maxScore) * 100;
+    if (pct >= 100) return '⭐⭐⭐';
+    if (pct >= 50) return '⭐⭐☆';
+    return '☆☆☆';
+}
 
 const quizTypeConfig: Record<QuizType, { icon: any; title: string; description: string }> = {
     multipleChoice: {
@@ -141,11 +149,11 @@ export default function TopicPage() {
 
             <div className="max-w-4xl mx-auto p-6">
                 <button
-                    onClick={() => router.push('/student/dashboard')}
+                    onClick={() => router.back()}
                     className="mb-6 flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow hover:shadow-lg transition-all text-gray-700 hover:text-gray-900"
                 >
                     <ArrowLeft className="w-4 h-4" />
-                    <span>Back to Dashboard</span>
+                    <span>Back</span>
                 </button>
 
                 <div className="mb-8">
@@ -171,6 +179,8 @@ export default function TopicPage() {
                                 ? Math.round((score.bestScore / score.maxScore) * 100)
                                 : 0;
 
+                            const stars = getStars(score);
+
                             return (
                                 <div
                                     key={quizType}
@@ -190,7 +200,7 @@ export default function TopicPage() {
                                                     <>
                                                         <span className="text-gray-400">•</span>
                                                         <span className="text-green-600 font-medium">
-                                                            Best: {score.bestScore || score.score}/{score.maxScore} ({percentage}%)
+                                                            Best: {score.bestScore ?? score.score}/{score.maxScore} ({percentage}%)
                                                         </span>
                                                         <span className="text-gray-400">•</span>
                                                         <span className="text-gray-500">{score.attempts} {score.attempts === 1 ? 'attempt' : 'attempts'}</span>
@@ -203,8 +213,9 @@ export default function TopicPage() {
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="text-indigo-600 group-hover:translate-x-2 transition-transform">
-                                            →
+                                        <div className="flex flex-col items-end gap-1">
+                                            {stars && <div className="text-xl">{stars}</div>}
+                                            <div className="text-indigo-600 group-hover:translate-x-2 transition-transform">→</div>
                                         </div>
                                     </div>
                                 </div>

@@ -3,7 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocs, collection, updateDoc, arrayUnion } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
 function LoginForm() {
@@ -16,6 +16,22 @@ function LoginForm() {
     const [isSignUp, setIsSignUp] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // Auto-enroll a user into all existing classes
+    const enrollInAllClasses = async (uid: string) => {
+        try {
+            const snapshot = await getDocs(collection(db, 'classes'));
+            await Promise.all(
+                snapshot.docs.map((classDoc) =>
+                    updateDoc(doc(db, 'classes', classDoc.id), {
+                        studentIds: arrayUnion(uid),
+                    })
+                )
+            );
+        } catch (error) {
+            console.error('Error enrolling in classes:', error);
+        }
+    };
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,6 +47,10 @@ function LoginForm() {
                     name: email.split('@')[0],
                     createdAt: new Date()
                 });
+                // Auto-enroll new student into all classes
+                if (role === 'student') {
+                    await enrollInAllClasses(userCredential.user.uid);
+                }
             } else {
                 await signInWithEmailAndPassword(auth, email, password);
             }
@@ -65,6 +85,8 @@ function LoginForm() {
                 isGuest: true,
                 createdAt: new Date()
             });
+            // Auto-enroll guest into all classes
+            await enrollInAllClasses(userCredential.user.uid);
 
             router.push('/student/dashboard');
         } catch (err: any) {
