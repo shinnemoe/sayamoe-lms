@@ -99,7 +99,7 @@ export default function ClassTopicsPage() {
             <div className="max-w-6xl mx-auto p-6">
                 <div className="mb-6">
                     <button
-                        onClick={() => router.back()}
+                        onClick={() => router.push('/student/dashboard')}
                         className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mb-4 group"
                     >
                         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
@@ -131,7 +131,7 @@ export default function ClassTopicsPage() {
                             return (
                                 <div
                                     key={topic.id}
-                                    onClick={() => router.push(`/student/topic/${topic.id}`)}
+                                    onClick={() => router.push(`/student/topic/${topic.id}?from=${classId}`)}
                                     className="bg-white rounded-2xl shadow-lg p-6 cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-300 group"
                                 >
                                     <div className="flex items-start justify-between mb-4">

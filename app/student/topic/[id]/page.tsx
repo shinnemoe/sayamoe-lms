@@ -149,7 +149,14 @@ export default function TopicPage() {
 
             <div className="max-w-4xl mx-auto p-6">
                 <button
-                    onClick={() => router.back()}
+                    onClick={() => {
+                        const classId = topic?.classIds?.[0];
+                        if (classId) {
+                            router.push(`/student/class/${classId}`);
+                        } else {
+                            router.push('/student/dashboard');
+                        }
+                    }}
                     className="mb-6 flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow hover:shadow-lg transition-all text-gray-700 hover:text-gray-900"
                 >
                     <ArrowLeft className="w-4 h-4" />

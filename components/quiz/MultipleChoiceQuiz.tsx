@@ -8,7 +8,7 @@ import { Volume2 } from 'lucide-react';
 
 interface Props {
     question: string;
-    options: string[] | MultipleChoiceOption[];  // Support both old and new formats
+    options: string[] | MultipleChoiceOption[];
     correctAnswer: string;
     explanation?: string;
     onAnswer: (answer: string) => void;
@@ -20,13 +20,10 @@ export default function MultipleChoiceQuiz({ question, options, correctAnswer, e
     const [selectedAnswer, setSelectedAnswer] = useState<string>('');
 
     // Normalize options to always have both text and icon
-    // This handles backwards compatibility with existing quizzes
-    const normalizedOptions = options.map((opt, index) => {
+    const normalizedOptions = options.map((opt) => {
         if (typeof opt === 'string') {
-            // Old format: just a string array
             return { text: opt, icon: findBestIcon(opt) };
         }
-        // New format: option object, but icon might be missing
         return {
             text: opt.text,
             icon: opt.icon || findBestIcon(opt.text)
@@ -38,6 +35,11 @@ export default function MultipleChoiceQuiz({ question, options, correctAnswer, e
         setSelectedAnswer(option);
         onAnswer(option);
     };
+
+    // Build full sentence for playback: replace blank(s) with the correct answer
+    const fullSentence = question.includes('_')
+        ? question.replace(/_+/g, correctAnswer)
+        : `${question} ${correctAnswer}`;
 
     return (
         <div>
@@ -69,8 +71,7 @@ export default function MultipleChoiceQuiz({ question, options, correctAnswer, e
                         >
                             <div className="flex flex-col items-center gap-3">
                                 <div className="text-4xl">{option.icon}</div>
-                                <div className={`text-base font-semibold text-center ${showResult && (isCorrectOption || (isSelected && !isCorrect)) ? 'text-white' : 'text-gray-800'
-                                    }`}>
+                                <div className={`text-base font-semibold text-center ${showResult && (isCorrectOption || (isSelected && !isCorrect)) ? 'text-white' : 'text-gray-800'}`}>
                                     {option.text}
                                 </div>
                                 {showResult && isCorrectOption && (
@@ -87,11 +88,12 @@ export default function MultipleChoiceQuiz({ question, options, correctAnswer, e
                     <div className="text-center font-bold text-2xl mb-2">
                         {isCorrect ? '✅ Correct!' : `❌ Wrong! Correct answer: ${correctAnswer}`}
                     </div>
-                    <div className="flex justify-center mt-3">
+                    <div className="flex flex-col items-center gap-2 mt-3">
+                        <p className="text-sm text-center italic opacity-80">{fullSentence}</p>
                         <button
-                            onClick={() => speakText(correctAnswer)}
+                            onClick={() => speakText(fullSentence)}
                             className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 shadow-md transition-all hover:shadow-lg"
-                            title="Listen to correct answer"
+                            title="Listen to full sentence"
                         >
                             <Volume2 className="w-5 h-5 text-indigo-600" />
                             <span className="text-sm font-semibold text-gray-700">Listen</span>

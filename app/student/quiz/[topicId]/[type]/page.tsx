@@ -8,6 +8,7 @@ import { Exercise, QuizType } from '@/types';
 import UnscrambleQuiz from '@/components/quiz/UnscrambleQuiz';
 import TrueFalseQuiz from '@/components/quiz/TrueFalseQuiz';
 import MultipleChoiceQuiz from '@/components/quiz/MultipleChoiceQuiz';
+import { ArrowLeft } from 'lucide-react';
 
 interface Answer {
     questionIndex: number;
@@ -187,6 +188,15 @@ export default function QuizPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-6">
             <div className="max-w-2xl mx-auto">
+                {/* Back button */}
+                <button
+                    onClick={() => router.push(`/student/topic/${topicId}`)}
+                    className="mb-4 flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow hover:shadow-lg transition-all text-gray-700 hover:text-gray-900"
+                >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Back</span>
+                </button>
+
                 {/* Quiz Title */}
                 {topicName && (
                     <div className="mb-4 text-center">
