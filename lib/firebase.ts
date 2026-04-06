@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore, memoryLocalCache } from 'firebase/firestore';
 
 const firebaseConfig = {
     apiKey: "AIzaSyCC_2u9drn6W7YkitrLhWbCluwJ1DI60ls",
@@ -14,4 +14,7 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Use memoryLocalCache to avoid IndexedDB issues on iOS Safari
+export const db = initializeFirestore(app, {
+    localCache: memoryLocalCache()
+});
