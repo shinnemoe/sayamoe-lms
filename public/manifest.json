@@ -1,0 +1,28 @@
+{
+  "name": "Sayamoe Twante",
+  "short_name": "Sayamoe",
+  "description": "A fast, sleek English learning app with flashcards and auto-generated quizzes.",
+  "start_url": "/login",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0D0F1A",
+  "theme_color": "#0D0F1A",
+  "lang": "en",
+  "categories": ["education"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

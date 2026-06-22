@@ -3,8 +3,7 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { BookOpen, Home, Users, LogOut, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { BookOpen, Home, LogOut, User } from 'lucide-react';
 
 interface NavbarProps {
     userRole: 'teacher' | 'student';
@@ -14,7 +13,6 @@ interface NavbarProps {
 export default function Navbar({ userRole, userName }: NavbarProps) {
     const router = useRouter();
     const pathname = usePathname();
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const handleLogout = async () => {
         await signOut(auth);
@@ -23,116 +21,195 @@ export default function Navbar({ userRole, userName }: NavbarProps) {
 
     const navLinks = userRole === 'teacher'
         ? [
-            { name: 'Dashboard', href: '/teacher/dashboard', icon: Home },
-            { name: 'Classes', href: '/teacher/classes', icon: Users },
+            { name: 'Home', href: '/teacher/dashboard', icon: Home },
         ]
         : [
-            { name: 'Dashboard', href: '/student/dashboard', icon: Home },
+            { name: 'Home', href: '/student/dashboard', icon: Home },
         ];
 
+    const dashboardHref = userRole === 'teacher' ? '/teacher/dashboard' : '/student/dashboard';
+
     return (
-        <nav className="bg-white shadow-md sticky top-0 z-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between h-16">
+        <>
+            {/* ── Top Header ────────────────────────── */}
+            <header style={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 40,
+                background: 'rgba(13, 15, 26, 0.85)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                borderBottom: '1px solid var(--border-subtle)',
+                paddingTop: 'max(0px, env(safe-area-inset-top))',
+            }}>
+                <div style={{
+                    maxWidth: 640,
+                    margin: '0 auto',
+                    padding: '12px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                }}>
                     {/* Logo */}
-                    <div className="flex items-center">
-                        <button
-                            onClick={() => router.push(userRole === 'teacher' ? '/teacher/dashboard' : '/student/dashboard')}
-                            className="flex items-center space-x-2 text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
-                        >
-                            <BookOpen className="w-6 h-6 text-indigo-600" />
-                            <span>Sayamoe Twante</span>
-                        </button>
-                    </div>
-
-                    {/* Desktop Navigation */}
-                    <div className="hidden md:flex md:items-center md:space-x-4">
-                        {navLinks.map((link) => {
-                            const Icon = link.icon;
-                            const isActive = pathname === link.href;
-                            return (
-                                <button
-                                    key={link.name}
-                                    onClick={() => router.push(link.href)}
-                                    className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-all ${isActive
-                                        ? 'bg-indigo-100 text-indigo-700 font-medium'
-                                        : 'text-gray-700 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    <Icon className="w-4 h-4" />
-                                    <span>{link.name}</span>
-                                </button>
-                            );
-                        })}
-
-                        {/* User Menu */}
-                        <div className="flex items-center space-x-3 ml-4 pl-4 border-l border-gray-200">
-                            <div className="text-right">
-                                <p className="text-sm font-medium text-gray-900">{userName || 'User'}</p>
-                                <p className="text-xs text-gray-500 capitalize">{userRole}</p>
-                            </div>
-                            <button
-                                onClick={handleLogout}
-                                className="flex items-center space-x-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                            >
-                                <LogOut className="w-4 h-4" />
-                                <span className="text-sm">Logout</span>
-                            </button>
+                    <button
+                        onClick={() => router.push(dashboardHref)}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: 0,
+                        }}
+                    >
+                        <div style={{
+                            width: 34,
+                            height: 34,
+                            background: 'linear-gradient(135deg, #7C6EF7, #C084FC)',
+                            borderRadius: 10,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 16,
+                        }}>
+                            📚
                         </div>
-                    </div>
+                        <span style={{
+                            fontWeight: 800,
+                            fontSize: 16,
+                            background: 'linear-gradient(135deg, #7C6EF7, #C084FC)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text',
+                            letterSpacing: '-0.3px',
+                        }}>
+                            Sayamoe
+                        </span>
+                    </button>
 
-                    {/* Mobile menu button */}
-                    <div className="md:hidden flex items-center">
-                        <button
-                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            className="text-gray-700 hover:text-gray-900"
-                        >
-                            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                        </button>
+                    {/* User info */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                    }}>
+                        <div style={{
+                            width: 34,
+                            height: 34,
+                            background: 'var(--bg-elevated)',
+                            border: '1px solid var(--border-subtle)',
+                            borderRadius: 10,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}>
+                            <User size={16} color="var(--text-secondary)" />
+                        </div>
+                        <span style={{
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: 'var(--text-primary)',
+                            maxWidth: 100,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                        }}>
+                            {userName || 'Student'}
+                        </span>
                     </div>
                 </div>
-            </div>
+            </header>
 
-            {/* Mobile Menu */}
-            {mobileMenuOpen && (
-                <div className="md:hidden border-t border-gray-200">
-                    <div className="px-2 pt-2 pb-3 space-y-1">
-                        {navLinks.map((link) => {
-                            const Icon = link.icon;
-                            const isActive = pathname === link.href;
-                            return (
-                                <button
-                                    key={link.name}
-                                    onClick={() => {
-                                        router.push(link.href);
-                                        setMobileMenuOpen(false);
-                                    }}
-                                    className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg transition-all ${isActive
-                                        ? 'bg-indigo-100 text-indigo-700 font-medium'
-                                        : 'text-gray-700 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    <Icon className="w-4 h-4" />
-                                    <span>{link.name}</span>
-                                </button>
-                            );
-                        })}
-                        <div className="pt-4 border-t border-gray-200">
-                            <div className="px-3 py-2">
-                                <p className="text-sm font-medium text-gray-900">{userName || 'User'}</p>
-                                <p className="text-xs text-gray-500 capitalize">{userRole}</p>
-                            </div>
+            {/* ── Bottom Navigation ─────────────────── */}
+            <nav className="bottom-nav">
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-around',
+                    padding: '8px 16px 0',
+                    maxWidth: 480,
+                    margin: '0 auto',
+                }}>
+                    {navLinks.map((link) => {
+                        const Icon = link.icon;
+                        const isActive = pathname === link.href || pathname.startsWith(link.href.replace('/dashboard', ''));
+                        return (
                             <button
-                                onClick={handleLogout}
-                                className="w-full flex items-center space-x-2 px-3 py-2 mt-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                key={link.name}
+                                onClick={() => router.push(link.href)}
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    padding: '8px 20px',
+                                    background: isActive ? 'rgba(124,110,247,0.15)' : 'transparent',
+                                    border: 'none',
+                                    borderRadius: 14,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    minWidth: 64,
+                                    position: 'relative',
+                                }}
                             >
-                                <LogOut className="w-4 h-4" />
-                                <span>Logout</span>
+                                {isActive && (
+                                    <span style={{
+                                        position: 'absolute',
+                                        top: -1,
+                                        left: '50%',
+                                        transform: 'translateX(-50%)',
+                                        width: 32,
+                                        height: 3,
+                                        background: 'linear-gradient(90deg, #7C6EF7, #C084FC)',
+                                        borderRadius: '0 0 4px 4px',
+                                    }} />
+                                )}
+                                <Icon
+                                    size={22}
+                                    color={isActive ? 'var(--accent-primary)' : 'var(--text-muted)'}
+                                />
+                                <span style={{
+                                    fontSize: 11,
+                                    fontWeight: isActive ? 700 : 500,
+                                    color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)',
+                                    fontFamily: 'inherit',
+                                }}>
+                                    {link.name}
+                                </span>
                             </button>
-                        </div>
-                    </div>
+                        );
+                    })}
+
+                    {/* Profile / Logout tab */}
+                    <button
+                        onClick={handleLogout}
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '8px 20px',
+                            background: 'transparent',
+                            border: 'none',
+                            borderRadius: 14,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            minWidth: 64,
+                        }}
+                    >
+                        <BookOpen size={22} color="var(--text-muted)" />
+                        <span style={{
+                            fontSize: 11,
+                            fontWeight: 500,
+                            color: 'var(--text-muted)',
+                            fontFamily: 'inherit',
+                        }}>
+                            Logout
+                        </span>
+                    </button>
                 </div>
-            )}
-        </nav>
+            </nav>
+        </>
     );
 }

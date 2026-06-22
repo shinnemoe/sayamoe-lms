@@ -6,6 +6,22 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnony
 import { doc, setDoc, getDoc, getDocs, collection, updateDoc, arrayUnion } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
+function Spinner() {
+    return (
+        <span style={{
+            display: 'inline-block',
+            width: 18,
+            height: 18,
+            border: '2.5px solid rgba(255,255,255,0.3)',
+            borderTopColor: '#fff',
+            borderRadius: '50%',
+            animation: 'spin 0.7s linear infinite',
+            verticalAlign: 'middle',
+            marginRight: 8,
+        }} />
+    );
+}
+
 function LoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -17,7 +33,6 @@ function LoginForm() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // Auto-enroll a user into all existing classes
     const enrollInAllClasses = async (uid: string) => {
         try {
             const snapshot = await getDocs(collection(db, 'classes'));
@@ -37,7 +52,6 @@ function LoginForm() {
         e.preventDefault();
         setError('');
         setLoading(true);
-
         try {
             if (isSignUp) {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -47,24 +61,21 @@ function LoginForm() {
                     name: email.split('@')[0],
                     createdAt: new Date()
                 });
-                // Auto-enroll new student into all classes
                 if (role === 'student') {
                     await enrollInAllClasses(userCredential.user.uid);
                 }
             } else {
                 await signInWithEmailAndPassword(auth, email, password);
             }
-
             const userDoc = await getDoc(doc(db, 'users', auth.currentUser!.uid));
             const userData = userDoc.data();
-
             if (userData?.role === 'teacher') {
                 router.push('/teacher/dashboard');
             } else {
                 router.push('/student/dashboard');
             }
         } catch (err: any) {
-            setError(err.message);
+            setError(err.message?.replace('Firebase: ', '')?.replace(/\(.*\)\.?/, '') || 'Login failed');
         } finally {
             setLoading(false);
         }
@@ -74,10 +85,7 @@ function LoginForm() {
         setLoading(true);
         setError('');
         try {
-            // Use Firebase Anonymous Authentication for guest access
             const userCredential = await signInAnonymously(auth);
-
-            // Store guest user data in Firestore
             await setDoc(doc(db, 'users', userCredential.user.uid), {
                 email: '',
                 role: 'student',
@@ -85,105 +93,154 @@ function LoginForm() {
                 isGuest: true,
                 createdAt: new Date()
             });
-            // Auto-enroll guest into all classes
             await enrollInAllClasses(userCredential.user.uid);
-
             router.push('/student/dashboard');
         } catch (err: any) {
-            setError('Failed to create guest account: ' + err.message);
+            setError('Failed to create guest session');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
-            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 w-full max-w-md">
-                <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+        <div style={{
+            minHeight: '100dvh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px 16px',
+            background: 'var(--bg-base)',
+            position: 'relative',
+            overflow: 'hidden',
+        }}>
+            {/* Animated background orbs */}
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+                <div className="animate-float" style={{
+                    position: 'absolute', top: '-10%', left: '-10%',
+                    width: 400, height: 400,
+                    background: 'radial-gradient(circle, rgba(124,110,247,0.18) 0%, transparent 70%)',
+                    borderRadius: '50%',
+                }} />
+                <div className="animate-float" style={{
+                    position: 'absolute', bottom: '-5%', right: '-5%',
+                    width: 350, height: 350,
+                    background: 'radial-gradient(circle, rgba(192,132,252,0.15) 0%, transparent 70%)',
+                    borderRadius: '50%',
+                    animationDelay: '-3s',
+                }} />
+                <div className="animate-float" style={{
+                    position: 'absolute', top: '40%', right: '15%',
+                    width: 200, height: 200,
+                    background: 'radial-gradient(circle, rgba(34,211,94,0.1) 0%, transparent 70%)',
+                    borderRadius: '50%',
+                    animationDelay: '-1.5s',
+                }} />
+            </div>
+
+            {/* Card */}
+            <div className="glass animate-fadeInUp" style={{
+                width: '100%',
+                maxWidth: 420,
+                borderRadius: 'var(--radius-xl)',
+                padding: '40px 32px',
+                position: 'relative',
+                zIndex: 1,
+            }}>
+                {/* Logo */}
+                <div style={{ textAlign: 'center', marginBottom: 36 }}>
+                    <div className="animate-pulse-ring" style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 72, height: 72,
+                        background: 'linear-gradient(135deg, #7C6EF7, #C084FC)',
+                        borderRadius: 20,
+                        marginBottom: 20,
+                        fontSize: 32,
+                    }}>
+                        📚
+                    </div>
+                    <h1 className="gradient-text" style={{
+                        fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: '-0.5px',
+                    }}>
                         Sayamoe Twante
                     </h1>
-                    <p className="text-gray-600">
-                        {role === 'teacher' ? '👨‍🏫 Teacher' : '👨‍🎓 Student'} {isSignUp ? 'Sign Up' : 'Login'}
+                    <p style={{ color: 'var(--text-secondary)', margin: '8px 0 0', fontSize: 14 }}>
+                        {isSignUp ? '✨ Create your account' : '👋 Welcome back, student'}
                     </p>
                 </div>
 
-                <form onSubmit={handleAuth} className="space-y-4">
-                    <div>
+                {/* Form */}
+                <form onSubmit={handleAuth}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         <input
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Email"
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                            placeholder="Email address"
+                            className="input-dark"
                             required
                         />
-                    </div>
-
-                    <div>
                         <input
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Password"
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                            className="input-dark"
                             required
                         />
+
+                        {error && (
+                            <div style={{
+                                background: 'rgba(255,92,115,0.12)',
+                                border: '1px solid rgba(255,92,115,0.3)',
+                                borderRadius: 10,
+                                padding: '10px 14px',
+                                color: '#FF8FA3',
+                                fontSize: 13,
+                                textAlign: 'center',
+                            }}>
+                                {error}
+                            </div>
+                        )}
+
+                        <button type="submit" disabled={loading} className="btn-primary" style={{ marginTop: 4 }}>
+                            {loading ? <><Spinner />{isSignUp ? 'Creating account...' : 'Signing in...'}</> : (isSignUp ? 'Create Account' : 'Sign In')}
+                        </button>
                     </div>
-
-                    {error && (
-                        <div className="text-red-500 text-sm text-center bg-red-50 p-2 rounded-lg">{error}</div>
-                    )}
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl hover:shadow-lg disabled:opacity-50 transition-all font-semibold"
-                    >
-                        {loading ? '⏳ Loading...' : (isSignUp ? '✨ Sign Up' : '🚀 Login')}
-                    </button>
                 </form>
 
-                <div className="mt-6 text-center space-y-4">
+                {/* Toggle sign up / login */}
+                <div style={{ textAlign: 'center', marginTop: 16 }}>
                     <button
-                        onClick={() => setIsSignUp(!isSignUp)}
-                        className="text-indigo-600 hover:underline text-sm font-medium"
+                        onClick={() => { setIsSignUp(!isSignUp); setError(''); }}
+                        style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            color: 'var(--accent-secondary)', fontSize: 13, fontWeight: 600,
+                            fontFamily: 'inherit',
+                        }}
                     >
-                        {isSignUp ? 'Already have an account? Login' : "Don't have an account? Sign Up"}
+                        {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
                     </button>
-
-                    {role === 'student' && (
-                        <button
-                            onClick={handleGuestLogin}
-                            disabled={loading}
-                            className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 disabled:opacity-50 transition-all font-semibold border-2 border-gray-200"
-                        >
-                            👤 Continue as Guest
-                        </button>
-                    )}
-
-                    <div className="flex gap-2 justify-center">
-                        <button
-                            onClick={() => router.push('/login?role=student')}
-                            className={`px-6 py-2 rounded-full font-medium transition-all ${role === 'student'
-                                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
-                        >
-                            👨‍🎓 Student
-                        </button>
-                        <button
-                            onClick={() => router.push('/login?role=teacher')}
-                            className={`px-6 py-2 rounded-full font-medium transition-all ${role === 'teacher'
-                                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
-                        >
-                            👨‍🏫 Teacher
-                        </button>
-                    </div>
                 </div>
+
+                {/* Guest */}
+                <div style={{ marginTop: 16 }}>
+                    <button onClick={handleGuestLogin} disabled={loading} className="btn-ghost">
+                        {loading ? <><Spinner />Loading...</> : '👤 Continue as Guest'}
+                    </button>
+                </div>
+
+                {/* Admin hint */}
+                <p style={{ textAlign: 'center', marginTop: 24, fontSize: 12, color: 'var(--text-muted)' }}>
+                    Admin?{' '}
+                    <a href="/admin" style={{ color: 'var(--accent-primary)', textDecoration: 'none', fontWeight: 600 }}>
+                        Go to /admin
+                    </a>
+                </p>
             </div>
+
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
     );
 }
@@ -191,8 +248,14 @@ function LoginForm() {
 export default function LoginPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
-                <div className="text-white text-xl animate-pulse">Loading...</div>
+            <div style={{
+                minHeight: '100dvh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--bg-base)',
+            }}>
+                <div style={{ color: 'var(--accent-primary)', fontSize: 18, fontWeight: 600 }}>Loading...</div>
             </div>
         }>
             <LoginForm />

@@ -7,7 +7,7 @@ import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firesto
 import { auth, db } from '@/lib/firebase';
 import { Topic, Score, Class } from '@/types';
 import Navbar from '@/components/Navbar';
-import { BookOpen, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, BookOpen } from 'lucide-react';
 
 const QUIZ_TYPES = ['multipleChoice', 'unscramble', 'trueFalse'] as const;
 
@@ -19,11 +19,30 @@ function getAggregatePct(topicScores: Record<string, Score>): number | null {
     return totalMax > 0 ? (totalScored / totalMax) * 100 : null;
 }
 
-function renderStars(pct: number | null): string {
-    if (pct === null) return '';
-    if (pct >= 100) return '⭐⭐⭐';
-    if (pct >= 50) return '⭐⭐☆';
-    return '☆☆☆';
+function getStarInfo(pct: number | null): { stars: string; color: string } {
+    if (pct === null) return { stars: '☆☆☆', color: 'var(--text-muted)' };
+    if (pct >= 100) return { stars: '⭐⭐⭐', color: '#FBBF24' };
+    if (pct >= 50) return { stars: '⭐⭐☆', color: '#60A5FA' };
+    return { stars: '⭐☆☆', color: '#4ADE80' };
+}
+
+function SkeletonTopicCard() {
+    return (
+        <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '20px',
+            border: '1px solid var(--border-subtle)',
+        }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div className="skeleton" style={{ width: 48, height: 48, borderRadius: 12 }} />
+                <div className="skeleton" style={{ width: 60, height: 24, borderRadius: 99 }} />
+            </div>
+            <div className="skeleton" style={{ height: 18, width: '70%', marginBottom: 8 }} />
+            <div className="skeleton" style={{ height: 13, width: '90%', marginBottom: 4 }} />
+            <div className="skeleton" style={{ height: 13, width: '60%' }} />
+        </div>
+    );
 }
 
 export default function ClassTopicsPage() {
@@ -34,16 +53,15 @@ export default function ClassTopicsPage() {
     const [user, setUser] = useState<any>(null);
     const [classInfo, setClassInfo] = useState<Class | null>(null);
     const [topics, setTopics] = useState<Topic[]>([]);
-    // scores[topicId][quizType] = Score
     const [scores, setScores] = useState<Record<string, Record<string, Score>>>({});
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-            if (!currentUser) { router.push('/login?role=student'); return; }
+            if (!currentUser) { router.push('/login'); return; }
             const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
             const userData = userDoc.data();
-            if (userData?.role !== 'student') { router.push('/login?role=student'); return; }
+            if (userData?.role !== 'student') { router.push('/login'); return; }
             setUser({ ...currentUser, ...userData });
             await loadClassData(currentUser.uid);
         });
@@ -63,7 +81,6 @@ export default function ClassTopicsPage() {
                 .sort((a, b) => (a.order || 0) - (b.order || 0));
             setTopics(topicsData);
 
-            // Load scores: for each topic, check all 3 quiz types in parallel
             const scoresData: Record<string, Record<string, Score>> = {};
             await Promise.all(
                 topicsData.map(async (topic) => {
@@ -85,83 +102,176 @@ export default function ClassTopicsPage() {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center">
-                <div className="text-xl font-medium text-indigo-600 animate-pulse">Loading topics...</div>
-            </div>
-        );
-    }
-
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+        <div style={{ minHeight: '100dvh', background: 'var(--bg-base)', paddingBottom: 100 }}>
             <Navbar userRole="student" userName={user?.name} />
-            <div className="max-w-6xl mx-auto p-6">
-                <div className="mb-6">
+
+            <div style={{ maxWidth: 640, margin: '0 auto', padding: '20px 16px' }}>
+                {/* Back + header */}
+                <div className="animate-fadeInUp" style={{ marginBottom: 24 }}>
                     <button
                         onClick={() => router.push('/student/dashboard')}
-                        className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mb-4 group"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--accent-primary)',
+                            fontSize: 14,
+                            fontWeight: 600,
+                            padding: '0 0 16px',
+                            fontFamily: 'inherit',
+                        }}
                     >
-                        <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                        <ArrowLeft size={16} />
                         Back to Classes
                     </button>
-                    <h1 className="text-4xl font-bold text-gray-900 mb-1">{classInfo?.name || 'Class Topics'}</h1>
-                    {classInfo?.level && (
-                        <span className="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
-                            {classInfo.level}
-                        </span>
-                    )}
-                    <p className="text-gray-600 mt-2">Choose a topic to start learning</p>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{
+                            width: 52,
+                            height: 52,
+                            background: 'linear-gradient(135deg, rgba(124,110,247,0.3), rgba(192,132,252,0.2))',
+                            border: '1px solid var(--border-accent)',
+                            borderRadius: 16,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 24,
+                            flexShrink: 0,
+                        }}>
+                            📖
+                        </div>
+                        <div>
+                            <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
+                                {classInfo?.name || 'Class Topics'}
+                            </h1>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                                {classInfo?.level && (
+                                    <span style={{
+                                        fontSize: 11, fontWeight: 700,
+                                        color: 'var(--accent-secondary)',
+                                        background: 'rgba(124,110,247,0.15)',
+                                        padding: '2px 8px', borderRadius: 99,
+                                        textTransform: 'uppercase', letterSpacing: 0.5,
+                                    }}>
+                                        {classInfo.level}
+                                    </span>
+                                )}
+                                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                                    {loading ? '...' : `${topics.length} topic${topics.length !== 1 ? 's' : ''}`}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                {topics.length === 0 ? (
-                    <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-                        <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <h2 className="text-2xl font-bold mb-2 text-gray-700">No Topics Yet</h2>
-                        <p className="text-gray-500">The teacher hasn't added any topics to this class yet.</p>
+                {/* Grid */}
+                {loading ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+                        {[1, 2, 3, 4].map(i => <SkeletonTopicCard key={i} />)}
+                    </div>
+                ) : topics.length === 0 ? (
+                    <div className="glass" style={{ borderRadius: 'var(--radius-lg)', padding: '48px 24px', textAlign: 'center' }}>
+                        <BookOpen size={48} color="var(--text-muted)" style={{ margin: '0 auto 16px' }} />
+                        <h2 style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 700, margin: '0 0 8px' }}>No Topics Yet</h2>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>The teacher hasn't added any topics yet.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {topics.map((topic) => {
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+                        {topics.map((topic, i) => {
                             const topicScores = scores[topic.id] || {};
                             const bestPct = getAggregatePct(topicScores);
-                            const stars = renderStars(bestPct);
+                            const { stars, color } = getStarInfo(bestPct);
                             const attempted = Object.values(topicScores).length > 0;
 
                             return (
                                 <div
                                     key={topic.id}
+                                    className="animate-fadeInUp"
                                     onClick={() => router.push(`/student/topic/${topic.id}?from=${classId}`)}
-                                    className="bg-white rounded-2xl shadow-lg p-6 cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-300 group"
+                                    style={{
+                                        background: 'var(--bg-card)',
+                                        borderRadius: 'var(--radius-lg)',
+                                        border: '1px solid var(--border-subtle)',
+                                        padding: '20px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                        animationDelay: `${i * 0.05}s`,
+                                        position: 'relative',
+                                        overflow: 'hidden',
+                                    }}
+                                    onMouseEnter={e => {
+                                        (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)';
+                                        (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)';
+                                        (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-card), var(--shadow-glow)';
+                                    }}
+                                    onMouseLeave={e => {
+                                        (e.currentTarget as HTMLElement).style.transform = '';
+                                        (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)';
+                                        (e.currentTarget as HTMLElement).style.boxShadow = '';
+                                    }}
                                 >
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="p-3 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl group-hover:from-indigo-200 group-hover:to-purple-200 transition-all">
-                                            {topic.emoji
-                                                ? <span className="text-4xl">{topic.emoji}</span>
-                                                : <BookOpen className="w-8 h-8 text-indigo-600" />}
+                                    {/* Top row */}
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
+                                        <div style={{
+                                            width: 52,
+                                            height: 52,
+                                            background: 'var(--bg-elevated)',
+                                            border: '1px solid var(--border-subtle)',
+                                            borderRadius: 14,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: topic.emoji ? 28 : 20,
+                                        }}>
+                                            {topic.emoji || <BookOpen size={24} color="var(--text-muted)" />}
                                         </div>
-                                        {stars && (
-                                            <div className="text-right">
-                                                <div className="text-xl leading-none">{stars}</div>
-                                                {bestPct !== null && (
-                                                    <div className="text-xs text-gray-400 mt-1">{Math.round(bestPct)}% best</div>
-                                                )}
-                                            </div>
-                                        )}
+                                        <div style={{
+                                            fontSize: 20,
+                                            letterSpacing: 2,
+                                            color,
+                                        }}>
+                                            {stars}
+                                        </div>
                                     </div>
 
-                                    <h3 className="text-xl font-bold mb-2 text-gray-900">{topic.name}</h3>
-                                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{topic.description}</p>
-
-                                    {attempted ? (
-                                        <div className="text-sm text-green-600 font-medium">In Progress</div>
-                                    ) : (
-                                        <div className="text-sm text-gray-400 italic">Not started yet</div>
+                                    <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px', lineHeight: 1.3 }}>
+                                        {topic.name}
+                                    </h3>
+                                    {topic.description && (
+                                        <p style={{
+                                            fontSize: 13,
+                                            color: 'var(--text-secondary)',
+                                            margin: '0 0 14px',
+                                            display: '-webkit-box',
+                                            WebkitLineClamp: 2,
+                                            WebkitBoxOrient: 'vertical',
+                                            overflow: 'hidden',
+                                        }}>
+                                            {topic.description}
+                                        </p>
                                     )}
 
-                                    <div className="mt-3 flex items-center text-indigo-600 font-medium group-hover:gap-2 transition-all">
-                                        <span>{attempted ? 'Continue' : 'Start Learning'}</span>
-                                        <span className="opacity-0 group-hover:opacity-100 transition-opacity ml-1">→</span>
+                                    {/* CTA */}
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <span style={{
+                                            fontSize: 12,
+                                            fontWeight: 700,
+                                            color: attempted ? 'var(--accent-success)' : 'var(--accent-primary)',
+                                            background: attempted ? 'rgba(34,211,94,0.1)' : 'rgba(124,110,247,0.1)',
+                                            padding: '4px 10px',
+                                            borderRadius: 99,
+                                        }}>
+                                            {attempted ? '▶ Continue' : '🚀 Start'}
+                                        </span>
+                                        {bestPct !== null && (
+                                            <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
+                                                {Math.round(bestPct)}%
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             );

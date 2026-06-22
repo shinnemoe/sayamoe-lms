@@ -1,27 +1,193 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* ── Design Tokens ─────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Backgrounds */
+  --bg-base:      #0D0F1A;
+  --bg-surface:   #151826;
+  --bg-card:      #1C1F33;
+  --bg-card-hover:#222640;
+  --bg-elevated:  #252840;
+
+  /* Accent colours */
+  --accent-primary:   #7C6EF7;
+  --accent-secondary: #9F84FF;
+  --accent-glow:      rgba(124, 110, 247, 0.35);
+  --accent-success:   #22D35E;
+  --accent-danger:    #FF5C73;
+  --accent-warning:   #F5A623;
+
+  /* Text */
+  --text-primary:   #F0F2FF;
+  --text-secondary: #9DA3C8;
+  --text-muted:     #5A5F7D;
+
+  /* Borders */
+  --border-subtle: rgba(255,255,255,0.07);
+  --border-accent: rgba(124,110,247,0.4);
+
+  /* Radius */
+  --radius-sm:  10px;
+  --radius-md:  16px;
+  --radius-lg:  24px;
+  --radius-xl:  32px;
+
+  /* Shadows */
+  --shadow-card:  0 4px 24px rgba(0,0,0,0.4);
+  --shadow-glow:  0 0 20px var(--accent-glow);
+  --shadow-btn:   0 4px 16px rgba(124,110,247,0.4);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* ── Base ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: 'Noto Sans Myanmar', Arial, Helvetica, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Plus Jakarta Sans', 'Noto Sans Myanmar', system-ui, sans-serif;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
 }
+
+/* ── Scrollbar ───────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 99px; }
+
+/* ── Glass Card ─────────────────────────────── */
+.glass {
+  background: rgba(28, 31, 51, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-subtle);
+}
+
+/* ── Glow Effects ──────────────────────────── */
+.glow-accent {
+  box-shadow: var(--shadow-glow);
+}
+
+/* ── Gradient text ─────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #7C6EF7, #C084FC);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Primary Button ────────────────────────── */
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-primary), #9B59F7);
+  color: white;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  padding: 14px 24px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: var(--shadow-btn);
+  width: 100%;
+  font-size: 1rem;
+  font-family: inherit;
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124,110,247,0.5); }
+.btn-primary:active { transform: translateY(0) scale(0.98); }
+.btn-primary:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
+
+/* ── Ghost Button ──────────────────────────── */
+.btn-ghost {
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  padding: 14px 24px;
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  font-size: 1rem;
+  font-family: inherit;
+}
+.btn-ghost:hover { background: var(--bg-card-hover); color: var(--text-primary); border-color: var(--border-accent); }
+.btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Input ─────────────────────────────────── */
+.input-dark {
+  width: 100%;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+.input-dark::placeholder { color: var(--text-muted); }
+.input-dark:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(124,110,247,0.2); }
+
+/* ── Dark Card ──────────────────────────────── */
+.card-dark {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.card-dark:hover { background: var(--bg-card-hover); border-color: var(--border-accent); box-shadow: var(--shadow-card), var(--shadow-glow); transform: translateY(-2px); }
+
+/* ── Skeleton ──────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-elevated) 50%, var(--bg-card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ── Fade-in animation ─────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeInUp { animation: fadeInUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ── Floating orb ──────────────────────────── */
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%       { transform: translateY(-20px) scale(1.05); }
+}
+.animate-float { animation: float 6s ease-in-out infinite; }
+
+/* ── Safe area for mobile ──────────────────── */
+.safe-bottom { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+.safe-top    { padding-top:    max(0px,  env(safe-area-inset-top)); }
+
+/* ── Bottom Nav ────────────────────────────── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(21, 24, 38, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border-subtle);
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 50;
+}
+
+/* ── Pulse ring animation ──────────────────── */
+@keyframes pulseRing {
+  0%   { transform: scale(0.9); box-shadow: 0 0 0 0 var(--accent-glow); }
+  70%  { transform: scale(1);   box-shadow: 0 0 0 12px transparent; }
+  100% { transform: scale(0.9); box-shadow: 0 0 0 0 transparent; }
+}
+.animate-pulse-ring { animation: pulseRing 2.5s ease-in-out infinite; }

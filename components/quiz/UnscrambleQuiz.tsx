@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { speakText } from '@/lib/audioUtils';
-import { Volume2 } from 'lucide-react';
+import { Volume2, RotateCcw } from 'lucide-react';
 
 interface WordInstance {
     text: string;
     instanceId: number;
-    displayIndex?: number; // For showing to the user (e.g., Ko₁, Ko₂)
+    displayIndex?: number;
 }
 
 interface Props {
     question: string;
-    prompt?: string;  // Optional instruction like "Arrange the words"
+    prompt?: string;
     words: string[] | WordInstance[];
     correctAnswer: string;
     explanation?: string;
@@ -25,80 +25,37 @@ export default function UnscrambleQuiz({ question, prompt, words, correctAnswer,
     const [selectedWords, setSelectedWords] = useState<WordInstance[]>([]);
     const [availableWords, setAvailableWords] = useState<WordInstance[]>([]);
 
-    // Process words and add instance IDs on component mount or when words change
-    useEffect(() => {
-        // Convert string array to WordInstance array if needed
+    const processWords = (wordList: typeof words) => {
         const wordInstances: WordInstance[] = [];
         const wordCounts: { [key: string]: number } = {};
-
-        const wordArray = words.map(w => typeof w === 'string' ? w : w.text);
-
-        wordArray.forEach((word, index) => {
-            if (!wordCounts[word]) {
-                wordCounts[word] = 0;
-            }
-            wordCounts[word]++;
-        });
-
-        // Create instances with display indices for duplicates
+        const wordArray = wordList.map(w => typeof w === 'string' ? w : w.text);
+        wordArray.forEach(word => { wordCounts[word] = (wordCounts[word] || 0) + 1; });
         const instanceCounts: { [key: string]: number } = {};
         wordArray.forEach((word, index) => {
-            if (!instanceCounts[word]) {
-                instanceCounts[word] = 0;
-            }
-            instanceCounts[word]++;
-
-            const hasDuplicates = wordCounts[word] > 1;
+            instanceCounts[word] = (instanceCounts[word] || 0) + 1;
             wordInstances.push({
                 text: word,
                 instanceId: index,
-                displayIndex: hasDuplicates ? instanceCounts[word] : undefined
+                displayIndex: wordCounts[word] > 1 ? instanceCounts[word] : undefined,
             });
         });
+        return wordInstances;
+    };
 
-        setAvailableWords(wordInstances);
+    useEffect(() => {
+        setAvailableWords(processWords(words));
         setSelectedWords([]);
     }, [words]);
 
-    // Reset state when question changes (when showResult becomes false)
     useEffect(() => {
         if (!showResult) {
-            // Re-process words
-            const wordInstances: WordInstance[] = [];
-            const wordCounts: { [key: string]: number } = {};
-
-            const wordArray = words.map(w => typeof w === 'string' ? w : w.text);
-
-            wordArray.forEach((word, index) => {
-                if (!wordCounts[word]) {
-                    wordCounts[word] = 0;
-                }
-                wordCounts[word]++;
-            });
-
-            const instanceCounts: { [key: string]: number } = {};
-            wordArray.forEach((word, index) => {
-                if (!instanceCounts[word]) {
-                    instanceCounts[word] = 0;
-                }
-                instanceCounts[word]++;
-
-                const hasDuplicates = wordCounts[word] > 1;
-                wordInstances.push({
-                    text: word,
-                    instanceId: index,
-                    displayIndex: hasDuplicates ? instanceCounts[word] : undefined
-                });
-            });
-
-            setAvailableWords(wordInstances);
+            setAvailableWords(processWords(words));
             setSelectedWords([]);
         }
     }, [showResult, words]);
 
     const handleWordClick = (word: WordInstance, fromAvailable: boolean) => {
         if (showResult) return;
-
         if (fromAvailable) {
             setSelectedWords([...selectedWords, word]);
             setAvailableWords(availableWords.filter(w => w.instanceId !== word.instanceId));
@@ -108,62 +65,109 @@ export default function UnscrambleQuiz({ question, prompt, words, correctAnswer,
         }
     };
 
+    const handleClear = () => {
+        setAvailableWords(processWords(words));
+        setSelectedWords([]);
+    };
+
     const handleSubmit = () => {
-        // Strip instance IDs and build answer
-        const answer = selectedWords.map(w => w.text).join(' ');
-        onAnswer(answer);
+        onAnswer(selectedWords.map(w => w.text).join(' '));
     };
 
     const subscriptNumbers = ['₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉'];
 
-    const renderWord = (word: WordInstance) => {
-        return (
-            <>
-                {word.text}
-                {word.displayIndex && (
-                    <span className="text-xs opacity-60 ml-0.5">
-                        {subscriptNumbers[word.displayIndex - 1] || word.displayIndex}
-                    </span>
-                )}
-            </>
-        );
-    };
+    const renderWord = (word: WordInstance) => (
+        <>
+            {word.text}
+            {word.displayIndex && (
+                <span style={{ fontSize: '0.65em', opacity: 0.5, marginLeft: 1 }}>
+                    {subscriptNumbers[word.displayIndex - 1] || word.displayIndex}
+                </span>
+            )}
+        </>
+    );
 
     return (
         <div>
-            <h2 className="text-2xl font-bold mb-2">{question}</h2>
-            {prompt && <p className="text-gray-600 mb-6 text-lg">{prompt}</p>}
+            <h2 style={{
+                fontSize: 20,
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                marginBottom: 6,
+                lineHeight: 1.4,
+            }}>
+                {question}
+            </h2>
+            {prompt && (
+                <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 20 }}>{prompt}</p>
+            )}
 
-            {/* Selected Words Area */}
-            <div className={`min-h-[100px] rounded-xl p-4 mb-6 border-2 border-dashed transition-colors ${showResult
-                    ? isCorrect
-                        ? 'bg-green-50 border-green-400'
-                        : 'bg-red-50 border-red-400'
-                    : 'bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-300'
-                }`}>
-                <div className="flex flex-wrap gap-2">
+            {/* Answer drop zone */}
+            <div style={{
+                minHeight: 80,
+                borderRadius: 'var(--radius-md)',
+                padding: 14,
+                marginBottom: 16,
+                border: `2px dashed ${showResult
+                    ? isCorrect ? 'rgba(34,211,94,0.5)' : 'rgba(255,92,115,0.5)'
+                    : 'var(--border-accent)'}`,
+                background: showResult
+                    ? isCorrect ? 'rgba(34,211,94,0.06)' : 'rgba(255,92,115,0.06)'
+                    : 'rgba(124,110,247,0.05)',
+                transition: 'all 0.3s ease',
+            }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, minHeight: 44, alignItems: 'center' }}>
                     {showResult ? (
-                        // Show the correct answer words in order
                         correctAnswer.split(' ').map((word, index) => (
                             <span
                                 key={index}
-                                className={`px-4 py-2 rounded-lg font-medium shadow-sm ${isCorrect
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-red-100 text-red-800'
-                                    }`}
+                                className="animate-fadeInUp"
+                                style={{
+                                    padding: '8px 14px',
+                                    borderRadius: 10,
+                                    fontWeight: 600,
+                                    fontSize: 14,
+                                    background: isCorrect ? 'rgba(34,211,94,0.15)' : 'rgba(255,92,115,0.15)',
+                                    color: isCorrect ? '#4ADE80' : '#FF8FA3',
+                                    border: `1px solid ${isCorrect ? 'rgba(34,211,94,0.3)' : 'rgba(255,92,115,0.3)'}`,
+                                    animationDelay: `${index * 0.04}s`,
+                                }}
                             >
                                 {word}
                             </span>
                         ))
                     ) : selectedWords.length === 0 ? (
-                        <p className="text-gray-400 text-center w-full">Tap words below to build your answer</p>
+                        <p style={{ color: 'var(--text-muted)', fontSize: 14, width: '100%', textAlign: 'center', margin: 0 }}>
+                            Tap words below to build your answer
+                        </p>
                     ) : (
                         selectedWords.map((word) => (
                             <button
                                 key={word.instanceId}
                                 onClick={() => handleWordClick(word, false)}
-                                className="px-4 py-2 bg-white rounded-lg shadow hover:shadow-lg transition-all font-medium"
-                                disabled={showResult}
+                                style={{
+                                    padding: '8px 14px',
+                                    background: 'var(--bg-elevated)',
+                                    border: '1.5px solid var(--border-accent)',
+                                    borderRadius: 10,
+                                    cursor: 'pointer',
+                                    fontWeight: 600,
+                                    fontSize: 14,
+                                    color: 'var(--text-primary)',
+                                    fontFamily: 'inherit',
+                                    transition: 'all 0.15s ease',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                                }}
+                                onMouseEnter={e => {
+                                    (e.currentTarget as HTMLElement).style.background = 'rgba(255,92,115,0.15)';
+                                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,92,115,0.5)';
+                                    (e.currentTarget as HTMLElement).style.color = '#FF8FA3';
+                                }}
+                                onMouseLeave={e => {
+                                    (e.currentTarget as HTMLElement).style.background = 'var(--bg-elevated)';
+                                    (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)';
+                                    (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)';
+                                }}
                             >
                                 {renderWord(word)}
                             </button>
@@ -172,47 +176,125 @@ export default function UnscrambleQuiz({ question, prompt, words, correctAnswer,
                 </div>
             </div>
 
-            {/* Available Words */}
-            <div className="flex flex-wrap gap-2 mb-6">
-                {availableWords.map((word) => (
-                    <button
-                        key={word.instanceId}
-                        onClick={() => handleWordClick(word, true)}
-                        className="px-4 py-2 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-lg hover:from-indigo-200 hover:to-purple-200 transition-all font-medium"
-                        disabled={showResult}
-                    >
-                        {renderWord(word)}
-                    </button>
-                ))}
-            </div>
-
-            {!showResult && selectedWords.length > 0 && (
-                <button
-                    onClick={handleSubmit}
-                    className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold"
-                >
-                    Submit Answer
-                </button>
+            {/* Available words */}
+            {!showResult && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                    {availableWords.map((word) => (
+                        <button
+                            key={word.instanceId}
+                            onClick={() => handleWordClick(word, true)}
+                            style={{
+                                padding: '8px 14px',
+                                background: 'var(--bg-card)',
+                                border: '1.5px solid var(--border-subtle)',
+                                borderRadius: 10,
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                                fontSize: 14,
+                                color: 'var(--text-secondary)',
+                                fontFamily: 'inherit',
+                                transition: 'all 0.15s ease',
+                            }}
+                            onMouseEnter={e => {
+                                (e.currentTarget as HTMLElement).style.background = 'rgba(124,110,247,0.15)';
+                                (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)';
+                                (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)';
+                                (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                            }}
+                            onMouseLeave={e => {
+                                (e.currentTarget as HTMLElement).style.background = 'var(--bg-card)';
+                                (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)';
+                                (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)';
+                                (e.currentTarget as HTMLElement).style.transform = '';
+                            }}
+                        >
+                            {renderWord(word)}
+                        </button>
+                    ))}
+                </div>
             )}
 
+            {/* Action buttons */}
+            {!showResult && selectedWords.length > 0 && (
+                <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                    <button
+                        onClick={handleClear}
+                        style={{
+                            padding: '12px 16px',
+                            background: 'var(--bg-card)',
+                            border: '1px solid var(--border-subtle)',
+                            borderRadius: 'var(--radius-md)',
+                            cursor: 'pointer',
+                            color: 'var(--text-muted)',
+                            fontFamily: 'inherit',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            fontSize: 14,
+                            fontWeight: 600,
+                            transition: 'all 0.2s ease',
+                        }}
+                    >
+                        <RotateCcw size={14} />
+                        Clear
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        className="btn-primary"
+                        style={{ flex: 1, padding: '12px 16px' }}
+                    >
+                        Submit Answer
+                    </button>
+                </div>
+            )}
+
+            {/* Result */}
             {showResult && (
-                <div className={`p-4 rounded-xl ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                    <div className="text-center font-bold text-lg mb-2">
-                        {isCorrect ? '✅ Correct!' : `❌ Wrong! Correct answer: "${correctAnswer}"`}
+                <div className="animate-fadeInUp" style={{
+                    padding: '16px 20px',
+                    borderRadius: 'var(--radius-md)',
+                    background: isCorrect ? 'rgba(34,211,94,0.1)' : 'rgba(255,92,115,0.1)',
+                    border: `1px solid ${isCorrect ? 'rgba(34,211,94,0.3)' : 'rgba(255,92,115,0.3)'}`,
+                    textAlign: 'center',
+                }}>
+                    <div style={{
+                        fontSize: 18,
+                        fontWeight: 800,
+                        color: isCorrect ? '#4ADE80' : '#FF8FA3',
+                        marginBottom: 10,
+                    }}>
+                        {isCorrect ? '✅ Correct!' : `❌ Correct answer: "${correctAnswer}"`}
                     </div>
-                    <div className="flex justify-center mt-3">
-                        <button
-                            onClick={() => speakText(correctAnswer)}
-                            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 shadow-md transition-all hover:shadow-lg"
-                            title="Listen to correct answer"
-                        >
-                            <Volume2 className="w-5 h-5 text-indigo-600" />
-                            <span className="text-sm font-semibold text-gray-700">Listen</span>
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => speakText(correctAnswer)}
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '8px 16px',
+                            background: 'var(--bg-elevated)',
+                            border: '1px solid var(--border-subtle)',
+                            borderRadius: 10,
+                            cursor: 'pointer',
+                            color: 'var(--accent-primary)',
+                            fontWeight: 600,
+                            fontSize: 13,
+                            fontFamily: 'inherit',
+                        }}
+                    >
+                        <Volume2 size={16} />
+                        Listen
+                    </button>
                     {!isCorrect && explanation && (
-                        <div className="text-sm text-red-600 mt-2 pt-2 border-t border-red-300">
-                            <span className="font-semibold">💡 Explanation:</span> {explanation}
+                        <div style={{
+                            marginTop: 12,
+                            paddingTop: 12,
+                            borderTop: '1px solid rgba(255,92,115,0.2)',
+                            fontSize: 13,
+                            color: '#FF8FA3',
+                            textAlign: 'left',
+                        }}>
+                            <span style={{ fontWeight: 700 }}>💡 Explanation:</span> {explanation}
                         </div>
                     )}
                 </div>
