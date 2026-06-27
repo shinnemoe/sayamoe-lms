@@ -30,9 +30,13 @@ export default function MultipleChoiceQuiz({ question, options, correctAnswer, e
         onAnswer(option);
     };
 
-    const fullSentence = question.includes('_')
-        ? question.replace(/_+/g, correctAnswer)
-        : `${question} ${correctAnswer}`;
+    // Strip instruction prefixes like "Fill in the blank:" so TTS only reads the actual sentence.
+    const sentencePart = question.includes(':') && question.includes('_')
+        ? question.substring(question.indexOf(':') + 1).trim()
+        : question;
+    const fullSentence = sentencePart.includes('_')
+        ? sentencePart.replace(/_+/g, correctAnswer)
+        : `${sentencePart} ${correctAnswer}`;
 
     return (
         <div>
