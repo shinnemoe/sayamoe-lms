@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import { Trophy, Target, Clock, CheckCircle2, XCircle, RotateCcw, Home, BookOpen } from 'lucide-react';
+import { RotateCcw, Home, BookOpen, CheckCircle2, XCircle } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import confetti from 'canvas-confetti';
 
@@ -159,8 +159,11 @@ export default function ResultsPage() {
 
     if (saving || !results) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center">
-                <div className="text-xl font-medium text-indigo-600 animate-pulse">Saving results...</div>
+            <div style={{ minHeight: '100dvh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 40, marginBottom: 16 }}>💾</div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: 16, fontWeight: 600 }}>Saving results...</div>
+                </div>
             </div>
         );
     }
@@ -169,115 +172,133 @@ export default function ResultsPage() {
     const isNewBest = previousBestScore !== null && results.score > previousBestScore;
     const isPerfect = percentage === 100;
 
+    const scoreColor = isPerfect ? '#4ADE80' : percentage >= 70 ? '#A78BFA' : percentage >= 50 ? '#60A5FA' : '#FF8FA3';
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+        <div style={{ minHeight: '100dvh', background: 'var(--bg-base)', paddingBottom: 40 }}>
             <Navbar userRole="student" userName={userName} />
 
-            <div className="max-w-4xl mx-auto p-6">
-                <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12">
-                    {/* Header */}
-                    <div className="text-center mb-8">
-                        <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full mb-4">
-                            <Trophy className="w-12 h-12 text-indigo-600" />
-                        </div>
-                        <h1 className="text-4xl font-bold text-gray-900 mb-2">Quiz Complete! 🎉</h1>
-                        {isPerfect && <p className="text-xl text-indigo-600 font-semibold">Perfect Score!</p>}
-                        {isNewBest && !isPerfect && <p className="text-xl text-green-600 font-semibold">New Best Score! 🚀</p>}
-                    </div>
+            <div style={{ maxWidth: 560, margin: '0 auto', padding: '24px 16px' }}>
 
-                    {/* Score Circle */}
-                    <div className="flex justify-center mb-8">
-                        <div className="relative w-48 h-48">
-                            <svg className="w-48 h-48 transform -rotate-90">
-                                <circle
-                                    cx="96"
-                                    cy="96"
-                                    r="88"
-                                    stroke="#e5e7eb"
-                                    strokeWidth="12"
-                                    fill="none"
-                                />
-                                <circle
-                                    cx="96"
-                                    cy="96"
-                                    r="88"
-                                    stroke="url(#scoreGradient)"
-                                    strokeWidth="12"
-                                    fill="none"
-                                    strokeDasharray={`${2 * Math.PI * 88}`}
-                                    strokeDashoffset={`${2 * Math.PI * 88 * (1 - percentage / 100)}`}
-                                    strokeLinecap="round"
-                                    className="transition-all duration-1000"
-                                />
-                                <defs>
-                                    <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" stopColor="#6366f1" />
-                                        <stop offset="100%" stopColor="#a855f7" />
-                                    </linearGradient>
-                                </defs>
-                            </svg>
-                            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-5xl font-bold text-gray-900">{percentage}%</span>
-                                <span className="text-gray-600">{results.score}/{results.total}</span>
-                            </div>
-                        </div>
+                {/* Trophy Header */}
+                <div className="animate-fadeInUp" style={{ textAlign: 'center', marginBottom: 28 }}>
+                    <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 80,
+                        height: 80,
+                        borderRadius: '50%',
+                        background: `rgba(${isPerfect ? '74,222,128' : '124,110,247'},0.15)`,
+                        border: `2px solid ${scoreColor}40`,
+                        fontSize: 36,
+                        marginBottom: 16,
+                    }}>
+                        {isPerfect ? '👑' : '🏆'}
                     </div>
-
-                    {/* Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 text-center">
-                            <CheckCircle2 className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                            <div className="text-2xl font-bold text-green-900">{results.score}</div>
-                            <div className="text-sm text-green-700">Correct</div>
-                        </div>
-                        <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-2xl p-4 text-center">
-                            <XCircle className="w-8 h-8 text-red-600 mx-auto mb-2" />
-                            <div className="text-2xl font-bold text-red-900">{results.total - results.score}</div>
-                            <div className="text-sm text-red-700">Incorrect</div>
-                        </div>
-                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 text-center">
-                            <Clock className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                            <div className="text-2xl font-bold text-blue-900">{formatTime(results.timeTaken)}</div>
-                            <div className="text-sm text-blue-700">Time Taken</div>
-                        </div>
-                    </div>
-
-                    {/* Previous Best Score Comparison */}
-                    {previousBestScore !== null && (
-                        <div className="bg-gray-50 rounded-2xl p-4 mb-8 text-center">
-                            <p className="text-sm text-gray-600 mb-1">Previous Best Score</p>
-                            <p className="text-2xl font-bold text-gray-900">
-                                {previousBestScore}/{results.total} ({Math.round((previousBestScore / results.total) * 100)}%)
-                            </p>
-                            {isNewBest && (
-                                <p className="text-green-600 font-medium mt-2">
-                                    +{results.score - previousBestScore} improvement! 📈
-                                </p>
-                            )}
-                        </div>
+                    <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 8px', letterSpacing: '-0.5px' }}>
+                        Quiz Complete! 🎉
+                    </h1>
+                    {isPerfect && (
+                        <p style={{ color: '#4ADE80', fontWeight: 700, fontSize: 15, margin: 0 }}>Perfect Score! 🌟</p>
                     )}
+                    {isNewBest && !isPerfect && (
+                        <p style={{ color: 'var(--accent-secondary)', fontWeight: 700, fontSize: 15, margin: 0 }}>New Best Score! 🚀</p>
+                    )}
+                </div>
 
-                    {/* Action Buttons */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Score Circle */}
+                <div className="animate-fadeInUp" style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
+                    <div style={{ position: 'relative', width: 160, height: 160 }}>
+                        <svg width="160" height="160" style={{ transform: 'rotate(-90deg)' }}>
+                            <circle cx="80" cy="80" r="70" stroke="var(--bg-elevated)" strokeWidth="10" fill="none" />
+                            <circle
+                                cx="80" cy="80" r="70"
+                                stroke={scoreColor}
+                                strokeWidth="10"
+                                fill="none"
+                                strokeDasharray={`${2 * Math.PI * 70}`}
+                                strokeDashoffset={`${2 * Math.PI * 70 * (1 - percentage / 100)}`}
+                                strokeLinecap="round"
+                                style={{ transition: 'stroke-dashoffset 1s cubic-bezier(0.22, 1, 0.36, 1)' }}
+                            />
+                        </svg>
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: 36, fontWeight: 800, color: scoreColor }}>{percentage}%</span>
+                            <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>{results.score}/{results.total}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Stats */}
+                <div className="animate-fadeInUp" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                    <div style={{
+                        background: 'rgba(74,222,128,0.1)',
+                        border: '1px solid rgba(74,222,128,0.25)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '16px',
+                        textAlign: 'center',
+                    }}>
+                        <CheckCircle2 size={24} color="#4ADE80" style={{ margin: '0 auto 8px' }} />
+                        <div style={{ fontSize: 28, fontWeight: 800, color: '#4ADE80' }}>{results.score}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Correct</div>
+                    </div>
+                    <div style={{
+                        background: 'rgba(255,92,115,0.1)',
+                        border: '1px solid rgba(255,92,115,0.25)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '16px',
+                        textAlign: 'center',
+                    }}>
+                        <XCircle size={24} color="#FF5C73" style={{ margin: '0 auto 8px' }} />
+                        <div style={{ fontSize: 28, fontWeight: 800, color: '#FF5C73' }}>{results.total - results.score}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Incorrect</div>
+                    </div>
+                </div>
+
+                {/* Previous Best */}
+                {previousBestScore !== null && (
+                    <div className="animate-fadeInUp" style={{
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '16px 20px',
+                        textAlign: 'center',
+                        marginBottom: 20,
+                    }}>
+                        <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, margin: '0 0 4px' }}>Previous Best</p>
+                        <p style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                            {previousBestScore}/{results.total} ({Math.round((previousBestScore / results.total) * 100)}%)
+                        </p>
+                        {isNewBest && (
+                            <p style={{ color: '#4ADE80', fontWeight: 700, fontSize: 13, margin: '6px 0 0' }}>
+                                +{results.score - previousBestScore} improvement! 📈
+                            </p>
+                        )}
+                    </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="animate-fadeInUp" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <button className="btn-primary" onClick={handleRetake} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                        <RotateCcw size={18} />
+                        Retake Quiz
+                    </button>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                         <button
-                            onClick={handleRetake}
-                            className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold"
-                        >
-                            <RotateCcw className="w-5 h-5" />
-                            Retake Quiz
-                        </button>
-                        <button
+                            className="btn-ghost"
                             onClick={() => router.push(`/student/topic/${topicId}`)}
-                            className="flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-xl hover:shadow-lg hover:border-gray-400 transition-all font-semibold"
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                         >
-                            <BookOpen className="w-5 h-5" />
+                            <BookOpen size={16} />
                             Back to Topic
                         </button>
                         <button
+                            className="btn-ghost"
                             onClick={() => router.push('/student/dashboard')}
-                            className="flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-xl hover:shadow-lg hover:border-gray-400 transition-all font-semibold"
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                         >
-                            <Home className="w-5 h-5" />
+                            <Home size={16} />
                             Dashboard
                         </button>
                     </div>
@@ -286,3 +307,4 @@ export default function ResultsPage() {
         </div>
     );
 }
+

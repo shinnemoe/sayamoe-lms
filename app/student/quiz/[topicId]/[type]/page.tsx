@@ -158,23 +158,25 @@ export default function QuizPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center">
-                <div className="text-xl animate-pulse">Loading quiz...</div>
+            <div style={{ minHeight: '100dvh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 40, marginBottom: 16 }}>⚡</div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: 16, fontWeight: 600 }}>Loading quiz...</div>
+                </div>
             </div>
         );
     }
 
     if (exercises.length === 0) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center p-6">
-                <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-                    <div className="text-6xl mb-4">📚</div>
-                    <h2 className="text-2xl font-bold mb-2">No Exercises</h2>
-                    <p className="text-gray-600 mb-6">This topic doesn't have any {quizType} exercises yet.</p>
-                    <button
-                        onClick={() => router.push(`/student/topic/${topicId}`)}
-                        className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all"
-                    >
+            <div style={{ minHeight: '100dvh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
+                <div className="glass" style={{ borderRadius: 'var(--radius-lg)', padding: '48px 32px', textAlign: 'center', maxWidth: 400, width: '100%' }}>
+                    <div style={{ fontSize: 48, marginBottom: 16 }}>📚</div>
+                    <h2 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 700, margin: '0 0 8px' }}>No Exercises</h2>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '0 0 24px' }}>
+                        This topic doesn&apos;t have any {quizType} exercises yet.
+                    </p>
+                    <button className="btn-primary" onClick={() => router.push(`/student/topic/${topicId}`)}>
                         Back to Topic
                     </button>
                 </div>
@@ -186,48 +188,93 @@ export default function QuizPage() {
     const progress = ((currentIndex + 1) / exercises.length) * 100;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-6">
-            <div className="max-w-2xl mx-auto">
+        <div style={{ minHeight: '100dvh', background: 'var(--bg-base)', paddingBottom: 32 }}>
+            <div style={{ maxWidth: 600, margin: '0 auto', padding: '16px 16px 0' }}>
+
                 {/* Back button */}
                 <button
                     onClick={() => router.push(`/student/topic/${topicId}`)}
-                    className="mb-4 flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow hover:shadow-lg transition-all text-gray-700 hover:text-gray-900"
+                    style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '10px 16px',
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-sm)',
+                        color: 'var(--text-secondary)',
+                        fontWeight: 600,
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        marginBottom: 20,
+                        transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={e => {
+                        (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)';
+                        (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)';
+                    }}
+                    onMouseLeave={e => {
+                        (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)';
+                        (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)';
+                    }}
                 >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>Back</span>
+                    <ArrowLeft size={16} />
+                    Back
                 </button>
 
                 {/* Quiz Title */}
                 {topicName && (
-                    <div className="mb-4 text-center">
-                        <h1 className="text-xl font-bold text-gray-800">{topicName}</h1>
-                        <span className="inline-block mt-1 px-3 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                    <div className="animate-fadeInUp" style={{ marginBottom: 20, textAlign: 'center' }}>
+                        <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 8px', letterSpacing: '-0.3px' }}>
+                            {topicName}
+                        </h1>
+                        <span style={{
+                            display: 'inline-block',
+                            padding: '4px 14px',
+                            background: 'rgba(124,110,247,0.15)',
+                            color: 'var(--accent-secondary)',
+                            borderRadius: 99,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            letterSpacing: 0.5,
+                        }}>
                             {quizTypeLabel[quizType] ?? quizType}
                         </span>
                     </div>
                 )}
 
-                {/* Progress Bar */}
-                <div className="mb-6">
-                    <div className="flex justify-between text-sm text-gray-600 mb-2">
-                        <span>Question {currentIndex + 1} of {exercises.length}</span>
-                        <span>Correct: {answers.filter(a => a.isCorrect).length}/{exercises.length}</span>
+                {/* Progress */}
+                <div style={{ marginBottom: 20 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>
+                            Question {currentIndex + 1} of {exercises.length}
+                        </span>
+                        <span style={{ fontSize: 13, color: 'var(--accent-success)', fontWeight: 700 }}>
+                            Correct: {answers.filter(a => a.isCorrect).length}/{exercises.length}
+                        </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                        <div
-                            className="bg-gradient-to-r from-indigo-600 to-purple-600 h-3 rounded-full transition-all duration-300"
-                            style={{ width: `${progress}%` }}
-                        />
+                    <div style={{ height: 6, background: 'var(--bg-elevated)', borderRadius: 99, overflow: 'hidden' }}>
+                        <div style={{
+                            height: '100%',
+                            width: `${progress}%`,
+                            background: 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))',
+                            borderRadius: 99,
+                            transition: 'width 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
+                        }} />
                     </div>
                 </div>
 
-                {/* Quiz Component */}
-                <div className="bg-white rounded-2xl shadow-2xl p-8">
+                {/* Quiz Card */}
+                <div className="animate-fadeInUp" style={{
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: '24px 20px',
+                }}>
                     {quizType === 'unscramble' && currentExercise.unscrambleAnswer && (() => {
-                        // Shuffle words so they're not in correct order
                         const words = currentExercise.unscrambleAnswer.split(' ');
                         const shuffled = [...words].sort(() => Math.random() - 0.5);
-
                         return (
                             <UnscrambleQuiz
                                 question={currentExercise.unscrambleQuestion || 'Unscramble the sentence:'}
@@ -255,7 +302,7 @@ export default function QuizPage() {
                     {quizType === 'multipleChoice' && currentExercise.mcQuestion && currentExercise.mcOptions && (
                         <MultipleChoiceQuiz
                             question={currentExercise.mcQuestion}
-                            options={currentExercise.mcOptions}  // Pass full objects with icons
+                            options={currentExercise.mcOptions}
                             correctAnswer={currentExercise.mcOptions[currentExercise.mcCorrectAnswerIndex ?? 0]?.text || ''}
                             explanation={currentExercise.explanation}
                             onAnswer={handleAnswer}
@@ -266,8 +313,9 @@ export default function QuizPage() {
 
                     {showResult && (
                         <button
+                            className="btn-primary"
                             onClick={handleNext}
-                            className="w-full mt-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold"
+                            style={{ marginTop: 20 }}
                         >
                             {currentIndex < exercises.length - 1 ? 'Next Question →' : '🎉 Finish Quiz'}
                         </button>
