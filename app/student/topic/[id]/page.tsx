@@ -117,21 +117,21 @@ export default function TopicPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center">
-                <div className="text-xl font-medium text-indigo-600 animate-pulse">Loading...</div>
+            <div style={{ minHeight: '100dvh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 40, marginBottom: 16 }}>📖</div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: 16, fontWeight: 600 }}>Loading...</div>
+                </div>
             </div>
         );
     }
 
     if (!topic) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center">
-                <div className="text-center">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Topic Not Found</h2>
-                    <button
-                        onClick={() => router.push('/student/dashboard')}
-                        className="text-indigo-600 hover:underline"
-                    >
+            <div style={{ minHeight: '100dvh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
+                <div className="glass" style={{ borderRadius: 'var(--radius-lg)', padding: '48px 32px', textAlign: 'center', maxWidth: 400, width: '100%' }}>
+                    <h2 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 700, margin: '0 0 16px' }}>Topic Not Found</h2>
+                    <button className="btn-primary" onClick={() => router.push('/student/dashboard')}>
                         Back to Dashboard
                     </button>
                 </div>
@@ -144,10 +144,12 @@ export default function TopicPage() {
     );
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+        <div style={{ minHeight: '100dvh', background: 'var(--bg-base)', paddingBottom: 100 }}>
             <Navbar userRole="student" userName={userName} />
 
-            <div className="max-w-4xl mx-auto p-6">
+            <div style={{ maxWidth: 600, margin: '0 auto', padding: '20px 16px' }}>
+
+                {/* Back button */}
                 <button
                     onClick={() => {
                         const classId = topic?.classIds?.[0];
@@ -157,77 +159,168 @@ export default function TopicPage() {
                             router.push('/student/dashboard');
                         }
                     }}
-                    className="mb-6 flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow hover:shadow-lg transition-all text-gray-700 hover:text-gray-900"
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--accent-primary)',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        padding: '0 0 20px',
+                        fontFamily: 'inherit',
+                    }}
                 >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>Back</span>
+                    <ArrowLeft size={16} />
+                    Back
                 </button>
 
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold text-gray-900 mb-2">{topic.name}</h1>
-                    <p className="text-gray-600">{topic.description}</p>
+                {/* Topic header */}
+                <div className="animate-fadeInUp" style={{ marginBottom: 28 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
+                        <div style={{
+                            width: 56,
+                            height: 56,
+                            background: 'var(--bg-elevated)',
+                            border: '1px solid var(--border-accent)',
+                            borderRadius: 16,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 28,
+                            flexShrink: 0,
+                        }}>
+                            {topic.emoji || '📖'}
+                        </div>
+                        <div>
+                            <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.3px' }}>
+                                {topic.name}
+                            </h1>
+                            {topic.description && (
+                                <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '4px 0 0' }}>
+                                    {topic.description}
+                                </p>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
+                {/* Quiz type selection */}
                 {availableQuizTypes.length === 0 ? (
-                    <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-                        <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                        <h2 className="text-2xl font-bold mb-2 text-gray-900">No Quizzes Available</h2>
-                        <p className="text-gray-600">Your teacher hasn't added any exercises to this topic yet.</p>
+                    <div className="glass" style={{ borderRadius: 'var(--radius-lg)', padding: '48px 24px', textAlign: 'center' }}>
+                        <FileText size={48} color="var(--text-muted)" style={{ margin: '0 auto 16px' }} />
+                        <h2 style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 700, margin: '0 0 8px' }}>No Quizzes Available</h2>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: 0 }}>Your teacher hasn&apos;t added any exercises yet.</p>
                     </div>
                 ) : (
-                    <div className="space-y-4">
-                        <h2 className="text-xl font-semibold text-gray-900 mb-4">Choose Quiz Type</h2>
-                        {availableQuizTypes.map((quizType) => {
-                            const config = quizTypeConfig[quizType];
-                            const Icon = config.icon;
-                            const count = quizTypeCounts[quizType];
-                            const score = scores[quizType];
-                            const percentage = score?.bestScore
-                                ? Math.round((score.bestScore / score.maxScore) * 100)
-                                : 0;
+                    <div>
+                        <p style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>
+                            Choose Quiz Type
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            {availableQuizTypes.map((quizType, i) => {
+                                const config = quizTypeConfig[quizType];
+                                const Icon = config.icon;
+                                const count = quizTypeCounts[quizType];
+                                const score = scores[quizType];
+                                const percentage = score?.bestScore
+                                    ? Math.round((score.bestScore / score.maxScore) * 100)
+                                    : 0;
+                                const stars = getStars(score);
+                                const attempted = !!score;
 
-                            const stars = getStars(score);
-
-                            return (
-                                <div
-                                    key={quizType}
-                                    onClick={() => router.push(`/student/quiz/${topicId}/${quizType}`)}
-                                    className="bg-white rounded-2xl shadow-lg p-6 cursor-pointer hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 group"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-4 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl group-hover:from-indigo-200 group-hover:to-purple-200 transition-all">
-                                            <Icon className="w-8 h-8 text-indigo-600" />
+                                return (
+                                    <div
+                                        key={quizType}
+                                        className="animate-fadeInUp"
+                                        onClick={() => router.push(`/student/quiz/${topicId}/${quizType}`)}
+                                        style={{
+                                            background: 'var(--bg-card)',
+                                            border: '1px solid var(--border-subtle)',
+                                            borderRadius: 'var(--radius-md)',
+                                            padding: '18px 16px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 14,
+                                            transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                            animationDelay: `${i * 0.07}s`,
+                                        }}
+                                        onMouseEnter={e => {
+                                            (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                                            (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)';
+                                            (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-card), var(--shadow-glow)';
+                                        }}
+                                        onMouseLeave={e => {
+                                            (e.currentTarget as HTMLElement).style.transform = '';
+                                            (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)';
+                                            (e.currentTarget as HTMLElement).style.boxShadow = '';
+                                        }}
+                                    >
+                                        {/* Icon */}
+                                        <div style={{
+                                            width: 48,
+                                            height: 48,
+                                            background: 'rgba(124,110,247,0.15)',
+                                            border: '1px solid var(--border-accent)',
+                                            borderRadius: 14,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexShrink: 0,
+                                        }}>
+                                            <Icon size={22} color="var(--accent-secondary)" />
                                         </div>
-                                        <div className="flex-1">
-                                            <h3 className="text-xl font-bold text-gray-900 mb-1">{config.title}</h3>
-                                            <p className="text-sm text-gray-600 mb-2">{config.description}</p>
-                                            <div className="flex items-center gap-4 text-sm">
-                                                <span className="text-gray-500">{count} {count === 1 ? 'question' : 'questions'}</span>
+
+                                        {/* Info */}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 }}>
+                                                {config.title}
+                                            </div>
+                                            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                                                {config.description}
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>
+                                                    {count} {count === 1 ? 'question' : 'questions'}
+                                                </span>
                                                 {score ? (
                                                     <>
-                                                        <span className="text-gray-400">•</span>
-                                                        <span className="text-green-600 font-medium">
+                                                        <span style={{ color: 'var(--border-subtle)', fontSize: 10 }}>•</span>
+                                                        <span style={{ fontSize: 11, color: 'var(--accent-success)', fontWeight: 700 }}>
                                                             Best: {score.bestScore ?? score.score}/{score.maxScore} ({percentage}%)
                                                         </span>
-                                                        <span className="text-gray-400">•</span>
-                                                        <span className="text-gray-500">{score.attempts} {score.attempts === 1 ? 'attempt' : 'attempts'}</span>
+                                                        <span style={{ color: 'var(--border-subtle)', fontSize: 10 }}>•</span>
+                                                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                                            {score.attempts} {score.attempts === 1 ? 'attempt' : 'attempts'}
+                                                        </span>
                                                     </>
                                                 ) : (
-                                                    <>
-                                                        <span className="text-gray-400">•</span>
-                                                        <span className="text-gray-500 italic">Not attempted</span>
-                                                    </>
+                                                    <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>Not attempted</span>
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="flex flex-col items-end gap-1">
-                                            {stars && <div className="text-xl">{stars}</div>}
-                                            <div className="text-indigo-600 group-hover:translate-x-2 transition-transform">→</div>
+
+                                        {/* Stars + arrow */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+                                            {stars && <div style={{ fontSize: 16, letterSpacing: 1 }}>{stars}</div>}
+                                            <span style={{
+                                                fontSize: 11,
+                                                fontWeight: 700,
+                                                color: attempted ? 'var(--accent-success)' : 'var(--accent-primary)',
+                                                background: attempted ? 'rgba(34,211,94,0.1)' : 'rgba(124,110,247,0.1)',
+                                                padding: '3px 10px',
+                                                borderRadius: 99,
+                                            }}>
+                                                {attempted ? '▶ Continue' : '🚀 Start'}
+                                            </span>
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
                 )}
             </div>
